@@ -7,7 +7,7 @@ import Prelude hiding (id,and,or)
 
 
 --
--- useful lambda calculus functions
+-- useful pure lambda calculus functions
 --
 
 -- identity (duh)
@@ -28,55 +28,47 @@ false = Abs "t" $ Abs "f" $ Ref "f"
 ycomb = Abs "r" (e @@ e)
   where e = Abs "a" (Ref "r" @@ (Ref "a" @@ Ref "a"))
 
+
 --
 -- feature modeling functions
 --
 
 -- optionality
-opt = Abs "f" $ Abs "b"
-    $ Dim "Opt" ["y","n"]
-    $ Chc "Opt" [Ref "f", id] @@ Ref "b"
+opt = Abs "f" $ Abs "base"
+    $ Dim "Opt" ["n","y"]
+    $ Chc "Opt" [id, Ref "f"] @@ Ref "base"
 
--- mutually exclusive
-alt2 = Abs "f1" $ Abs "f2" $ Abs "b"
-     $ Dim "Alt" ["f1","f2"]
-     $ Chc "Alt" [Ref "f1", Ref "f2"] @@ Ref "b"
+-- exclusive or
+altN n = fAbsN n $ Dim "Alt" fs $ Chc "Alt" (map Ref fs)
+  where fs = fsN n
 
-alt3 = Abs "f1" $ Abs "f2" $ Abs "f3" $ Abs "b"
-     $ Dim "Alt" ["f1","f2","f3"]
-     $ Chc "Alt" [Ref "f1", Ref "f2", Ref "f3"] @@ Ref "b"
+alt2 = altN 2
+alt3 = altN 3
 
-or2 = Abs "f1" $ Abs "f2" $ Abs "b"
-    $ Dim "Or" ["f1","f2","f1f2"]
-    $ Chc "Or" [Ref "f1", Ref "f2", dot @@ Ref "f2" @@ Ref "f1"] @@ Ref "b"
-
-or3 = Abs "f1" $ Abs "f2" $ Abs "f3" $ Abs "b"
-    $ Dim "Or" ["f1","f2","f1f2","f3","f1f3","f2f3","f1f2f3"]
-    $ Chc "Or" [Ref "f1", Ref "f2",
-                dot @@ Ref "f2" @@ Ref "f1",
-                Ref "f3",
-                dot @@ Ref "f3" @@ Ref "f1",
-                dot @@ Ref "f3" @@ Ref "f2",
-                dot @@ Ref "f3" @@ (dot @@ Ref "f2" @@ Ref "f1")]
-    @@ Ref "b"
-
-orN n = abs $ Abs "b" $ dim $ chc @@ Ref "b"
-  where fs  = map (('f':) . show) [1..n]
-        fss = tail (subsequences fs)
-        abs b = foldr ($) b (map Abs fs)
+-- inclusive or
+orN n = fAbsN n $ dim $ chc
+  where fss = tail (subsequences (fsN n))
         dim = Dim "Or" (map concat fss)
         chc = Chc "Or" $ map (foldr1 (\f g -> dot @@ f @@ g) . map Ref . reverse) fss
 
+or2 = orN 2
+or3 = orN 3
+
 -- apply a feature an arbitrary number of times
-{-
-arb = Abs "f" $ Abs "b" $ body
-  where body = Dim "Again?" ["n","y"] $ Chc "Again?" [Ref "b", Ref "f" @@ body]
--}
-
-arb = Abs "f" $ Abs "b" $ rec @@ rec
+arb = Abs "f" $ Abs "base" $ rec @@ rec
   where rec = Abs "r" $ Dim "Again?" ["n","y"]
-                      $ Chc "Again?" [Ref "b", Ref "f" @@ (Ref "r" @@ Ref "r")]
+                      $ Chc "Again?" [Ref "base", Ref "f" @@ (Ref "r" @@ Ref "r")]
 
+
+--
+-- helper functions
+--
+
+fsN :: Int -> [Var]
+fsN n = map (('f':) . show) [1..n]
+
+fAbsN :: Int -> CC -> CC
+fAbsN n body = foldr ($) (Abs "base" (body @@ Ref "base")) (map Abs (fsN n))
 
 --
 -- example features
