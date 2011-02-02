@@ -92,22 +92,6 @@ a = leaf "a"
 b = leaf "b"
 c = leaf "c"
 
--- 
--- let v = (dim A<a,b> in A<1,2>) in {v,v}
---   A.a => {1,1}
---   A.b => {2,2}
---
--- dim A<a,b> in ((\v. {v,v}) (A<1,2>))
---   A.a => {1,1}
---   A.b => {2,2}
---
--- (\v. {v,v}) (dim A<a,b> in A<1,2>)
---   A.a,A.a => {1,1}
---   A.a,A.b => {1,2}
---   A.b,A.a => {2,1}
---   A.b,A.b => {2,2}
---
-
 -- some really basic generic features
 pre  = Abs "pre"  $ Abs "x" $ Str "" [Ref "pre", Ref "x"]
 post = Abs "post" $ Abs "x" $ Str "" [Ref "x", Ref "post"]

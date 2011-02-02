@@ -56,17 +56,43 @@ From our own wishlist:
        - At first we thought so, now we use it!
          - e.g. infinitely recursive CC expressions put to use!
   
-  2. Eagerly apply beta-reduction.
-         (\v. {v,v}) (dim A<a,b> in A<1,2>)
+  2. Eagerly apply beta-reduction
+         
+       Originally:
+         
+         let v = (dim A<a,b> in A<1,2>) in {v,v}
            A.a => {1,1}
            A.b => {2,2}
+
+       New representation:
+         
+         (\v. {v,v}) (dim A<a,b> in A<1,2>)
+
+       Previously, resolved sharing (beta-reduction) after dimension
+       declaration
+         
+           A.a => (\v. -> {v,v}) 1
+           A.b => (\v. -> {v,v}) 2
+           
+           A.a => {1,1}
+           A.b => {2,2}
+       
+       Now, apply functions before dimension elimination
+         
+         (\v. {v,v}) (dim A<a,b> in A<1,2>)
+         
          {dim A<a,b> in A<1,2>,dim A<a,b> in A<1,2>}
            A.a,A.a => {1,1}
            A.a,A.b => {1,2}
            A.b,A.a => {2,1}
            A.b,A.b => {2,2}
-     - Previously, expanded lets after dimension elimination
-     - Now, apply functions before dimension elimination
+
+       If we want the old semantics:
+         
+         dim A<a,b> in ((\v. {v,v}) (A<1,2>))
+           A.a => {1,1}
+           A.b => {2,2}
+
      - This allows us to "meta-program" CC expressions
        - dimension reuse, CC generation
          - OR is ugly? write a function to generate it!
