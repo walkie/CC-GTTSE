@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 
 --
 -- A module for generating random, well-formed choice calculus expressions.
@@ -16,8 +17,8 @@ import CC
 -----------------------
 
 -- generate a random data string
-genData :: Gen Data
-genData = elements (map show [0..99])
+genData :: Gen Int
+genData = elements [0..99]
 
 -- generate a dimension name
 genDimName :: Gen Dim
@@ -64,7 +65,7 @@ addVar v s = s { varEnv = v : varEnv s }
 -- Choice Calculus Generators --
 --------------------------------
 
-type GenCC = GenState -> Gen CC
+type GenCC = GenState -> Gen (CC Int)
 
 genCC :: GenCC
 genCC s | maxDepth s < 2 = genLeaf (inc s)
@@ -113,5 +114,5 @@ genChc s = do (d,i) <- elements (dimEnv s)
 -- Arbitrary Instance --
 ------------------------
 
-instance Arbitrary CC where
+instance Arbitrary (CC Int) where
   arbitrary = genCC (genState 10 2)
