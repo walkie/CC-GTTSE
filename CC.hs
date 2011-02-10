@@ -81,6 +81,16 @@ badAbsFree = outer . reduce []
         inner (Abs _ _) = False
         inner e         = all inner (subs e)
 
+wellDim :: Map Dim Int -> CC a -> Bool
+wellDim m (Dim d ts e) = wellDim ((d,length ts):m) e
+wellDim m (Chc d es)   = maybe False (== length es) (lookup d m) && all (wellDim m) es
+wellDim m e            = and $ mapSubs (wellDim m) e
+
+wellRef :: [Var] -> CC a -> Bool
+wellRef vs (Abs v e) = wellRef (v:vs) e
+wellRef vs (Ref v)   = elem v vs
+wellRef vs e         = and $ mapSubs (wellRef vs) e
+
 -- full beta reduction
 reduce :: Map Var (CC a) -> CC a -> CC a
 reduce m (App l r) = case reduce m l of
@@ -91,6 +101,7 @@ reduce m e@(Ref v) = fromMaybe e (lookup v m)
 reduce m e         = tranSubs (reduce m) e
 
 red = reduce []
+
 
 ------------
 -- Values --
