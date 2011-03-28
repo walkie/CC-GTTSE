@@ -1,10 +1,12 @@
-{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleContexts, TypeSynonymInstances #-}
 
 module CC where
 
 import Data.Function (on)
 import Data.Maybe (fromMaybe)
+import Data.Typeable
 
+import Debug.Trace
 
 ------------
 -- Syntax --
@@ -102,6 +104,101 @@ reduce m e         = tranSubs (reduce m) e
 
 red = reduce []
 
+
+-----------------
+-- Type System --
+-----------------
+
+data CCT t = 
+    StrT t [CCT t]
+  | DimT Dim [Tag] (CCT t)
+  | ChcT Dim [CCT t]
+  | FunT (CCT t) (CCT t)
+  | VarT Int
+  deriving Eq
+
+next :: Map String Int -> Int
+next []        = 0
+next ((_,i):_) = i+1
+
+{-
+swapT :: CCT t -> [CC t] -> CC t
+swapT (Str a _)   es    = Str a es
+swapT (Dim d t _) [e]   = Dim d t e
+swapT (Chc d _)   as    = Chc d as
+swapT (Abs v _)   [e]   = Abs v e
+swapT (App _ _)   [l,r] = App l r
+swapT (Ref v)     []    = Ref v
+-}
+
+infer :: Typeable a => Map Var Int -> CC a -> CCT TypeRep
+infer m (Str a es)   = StrT (typeOf a) (map (infer m) es)
+infer m (Dim d ts e) = DimT d ts ((infer m) e)
+infer m (Chc d es)   = ChcT d (map (infer m) es)
+infer m (Abs v e)    = FunT (VarT i) (infer ((v,i):m) e) where i = next m
+infer m (App l r)    = infer m l `composeT` infer m r
+infer m (Ref v)      = maybe err VarT (lookup v m) where err = error ("undefined: "++v)
+
+composeT :: CCT t -> CCT t -> CCT t
+composeT (StrT t _) _    = error "a"
+composeT (DimT d ts l) r = DimT d ts (l `composeT` r) -- wrong
+
+same :: [Int] -> Maybe Int
+same []                    = Just 0
+same (i:is) | all (i==) is = Just i
+            | otherwise    = Nothing
+
+maxi :: [Int] -> Int
+maxi = maximum . (0:)
+
+isZero :: Int -> Maybe Int
+isZero 0 = Just 0
+isZero _ = Nothing
+
+addVar :: Var -> Map Var Int -> [Int] -> (Map Var Int,[Int])
+addVar v m []     = ((v,0):m,[])
+addVar v m (a:as) = ((v,a):m,as)
+
+arity :: Map Var Int -> [Int] -> CC a -> Maybe Int
+arity m as (Abs v e) = fmap (+1) (arity m' as' e) where (m',as') = addVar v m as
+arity m as (App l r) = do ra <- arity m [] r
+                          la <- arity m (ra:as) l
+                          return (max 0 (la-1))
+arity m _  (Ref v)   = lookup v m
+arity m as e         = fmap maxi $ sequence (mapSubs (arity m as) e) -- >>= same
+
+ari = arity [] []
+
+--check e = ari e == Just 0
+
+{-
+arity :: Map Var (Maybe Int) -> [Int] -> CC a -> Maybe Int
+arity m as (Str _ es) = Just 0
+arity m as (App l r)  = check n r && check (n+1) l
+arity m as (Abs _ e)  = check (n-1) e
+arity m as e          = and (mapSubs (check n) e)
+-}
+
+{-
+data Status = AllFun | NoFun | Error
+  deriving Eq
+
+allFun :: Map Var Status -> CC a -> Bool
+allFun _ (Str _ _)   = False
+allFun m (Dim _ _ e) = allFun m e
+allFun m (Chc _ es)  = all (allFun m) es
+allFun _ (Abs _ _)   = True
+allFun m (App l r)   = undefined
+allFun m (Ref v)     = maybe False (==AllFun) (lookup v m)
+
+noFun :: Map Var Status -> CC a -> Bool
+noFun m (Str _ es)  = all (noFun m) es
+noFun m (Dim _ _ e) = noFun m e
+noFun m (Chc _ es)  = all (noFun m) es
+noFun _ (Abs _ _)   = False
+noFun m (App l r)   = undefined
+noFun m (Ref v)     = maybe False (==NoFun) (lookup v m)
+-}
 
 ------------
 -- Values --

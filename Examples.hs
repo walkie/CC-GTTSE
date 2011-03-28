@@ -4,8 +4,8 @@ module Examples where
 import CC
 import Pretty
 
-import Data.List (subsequences)
-import Prelude hiding (id,and,or)
+import Data.List (nub,subsequences)
+import Prelude hiding (id,or)
 
 
 --
@@ -83,6 +83,7 @@ fAbsN :: Int -> CC a -> CC a
 fAbsN n body = foldr ($) (Abs "base" (body @@ Ref "base")) (map Abs (fsN n))
 
 
+
 --
 -- examples
 --
@@ -147,5 +148,75 @@ hiBye' = Abs "x"
 
 count = Str 1 [leaf 2, leaf 3]
 ext = Str 0 [leaf 0, leaf 0, leaf 4]
-inc = Str 1 [leaf 1, leaf 1]
-extInc = Dim "Do" ["ext","inc"] $ Chc "Do" [ext,inc]
+--inc = Str 1 [leaf 1, leaf 1]
+--extInc = Dim "Do" ["ext","inc"] $ Chc "Do" [ext,inc]
+
+type R = (Maybe Int,[CC Int])
+
+merge :: Maybe R -> Maybe R -> Maybe R
+merge (Just (Just a ,xs)) (Just (Just b ,ys)) | a == b = Just (Just a,  nub (xs++ys))
+merge (Just (Just a ,xs)) (Just (Nothing,ys))          = Just (Just a,  nub (xs++ys))
+merge (Just (Nothing,xs)) (Just (Just b ,ys))          = Just (Just b,  nub (xs++ys))
+merge (Just (Nothing,xs)) (Just (Nothing,ys))          = Just (Nothing, nub (xs++ys))
+merge _ _ = Nothing
+
+inc :: Maybe R -> Maybe R
+inc (Just (a,xs))  = Just (Just (maybe 1 (+1) a),xs)
+inc _ = Nothing
+
+dec :: Maybe R -> Maybe R
+dec (Just (a,xs)) = Just (fmap (subtract 1) a,xs)
+dec _ = Nothing
+
+applT :: CC Int -> CC Int -> Bool
+applT (Str a []) (Str b []) = a < b
+
+compT :: CC Int -> CC Int -> CC Int
+compT (Str a []) (Str b []) = Str (a+b) []
+
+compA :: CC Int -> Maybe Int
+compA (Str a _) = Just a
+
+plain :: CC Int -> Bool
+plain (Str _ es) = all plain es
+plain _ = False
+
+sat :: Map Var Int -> [Int] -> CC Int -> Maybe Int
+sat _ _ e | plain e = compA e
+sat m _ (Ref v) = lookup v m
+sat m as (Str _ es)  = do ss <- sequence (map (sat m as) es)
+                          if all (==0) ss then Just 0 else Nothing
+sat m as (Dim _ _ e) = sat m as e
+sat m as (Chc _ es)  = do (s:ss) <- sequence (map (sat m as) es) 
+                          if all (==s) ss then Just s else Nothing
+sat m []     (Abs v e) = fmap (+1) $ sat ((v,0):m) [] e
+sat m (a:as) (Abs v e) = fmap (+1) $ sat ((v,a):m) as e
+sat m as (App l r)   = do sr <- sat m [] r
+                          sl <- sat m (sr:as) l
+                          if sl > 0 then Just (sl-1) else Nothing
+
+
+{-
+sat :: Map Var R -> [R] -> CC Int -> Maybe R
+sat _ _  (Str x [])  = Just (Nothing,[leaf x])
+--sat o m as (Str x es)  = do ss <- sequence (map (sat o m as) es)
+--                            if all (==0) ss then Just (0,x) else Nothing
+sat m as (Dim _ _ e) = sat m as e
+sat m as (Chc _ es)  = foldr1 merge (map (sat m as) es)
+sat m []     (Abs v e) = inc $ sat ((v,(Nothing,[])):m) [] e
+sat m (a:as) (Abs v e) = inc $ sat ((v,a):m) as e
+sat m as (Ref v)     = lookup v m
+sat m as (App l r)   = do (ar,xr) <- sat m []           r
+                          (al,xl) <- sat m ((ar,xr):as) l
+                          if maybe True (>0) al && and [applT x y | x <- xl, y <- xr]
+                             then Just (fmap (subtract 1) al, [compT x y | x <- xl, y <- xr]) else Nothing
+-}
+
+check :: CC Int -> Maybe Int
+check = sat [] []
+
+{-
+check :: CC Int -> Bool
+check e = do (a,_) <- sat' e False
+-}
+
