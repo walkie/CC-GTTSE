@@ -36,6 +36,12 @@ genVarName = genTagName
 genTagNames :: Gen [Tag]
 genTagNames = listOf genTagName
 
+tagGen :: [Tag]
+tagGen = [ts++[t] | ts <- []:tagGen, t <- ['a'..'z']]
+  
+dimGen :: [Dim]
+dimGen = [ds++[d] | ds <- []:dimGen, d <- ['A'..'Z']]
+
 
 ------------------------
 -- CC Generator State --
