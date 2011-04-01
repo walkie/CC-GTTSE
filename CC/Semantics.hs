@@ -39,6 +39,10 @@ value (Close _ v e) = Abs v e
 sem :: (Compose a, Data a) => V a -> Sem a
 sem = vary []
 
+-- pretty printed semantics
+psem :: (Show a, Compose a, Data a) => V a -> IO ()
+psem = putStr . showSem . sem
+
 -- partial semantics composition (bowtie in FSE-11 paper)
 compose :: (Compose a, Data a) => Sem a -> Sem a -> Sem a
 compose sl sr = concatMap (composeR sr) sl

@@ -1,13 +1,7 @@
 
-module CC.Pretty (showDim,
-                  showChc,
-                  showShr,
-                  showLet,
-                  showAbs,
-                  showApp,
-                  showRef,
-                  showSel,
-                  showEnv) where
+module CC.Pretty (showDim,showChc,showShr,showLet,
+                  showAbs,showApp,showRef,
+                  showSel,showEnv,showSem) where
 
 import Data.List (intersperse)
 
@@ -19,6 +13,7 @@ import Data.List (intersperse)
 commas c = concat . intersperse (c ",")
 parens s = op "(" ++ s ++ op ")"
 bracks s = op "<" ++ s ++ op ">"
+square s = "[" ++ s ++ "]"
 declIn k decl body = key k ++ " " ++ decl ++ key " in " ++ body
 
 op  = style blue
@@ -37,8 +32,12 @@ showRef v   = var v
 
 showSel d t = tag (d ++ "." ++ t)
 
-showEnv m = "[" ++ commas id (map entry m) ++ "]"
+showEnv m = square (commas id (map entry m))
   where entry (v,p) = parens (var v ++ "," ++ show p)
+
+showSem :: (Show a, Show b) => [([a],b)] -> String
+showSem = concatMap row
+  where row (qs,e) = square (commas id (map show qs)) ++ "  =>  " ++ show e ++ "\n"
 
 -- Martin's color module (modified)
 --

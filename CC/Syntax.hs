@@ -18,9 +18,9 @@ import CC.Pretty
 -- Syntax --
 ------------
 
-type Dim  = String
-type Tag  = String
-type Var  = String
+type Dim = String
+type Tag = String
+type Var = String
 
 -- choice calculus expressions (read: variational x)
 data V a =
@@ -32,7 +32,7 @@ data V a =
   | Abs Var (V a)       -- lambda abstraction
   | App (V a) (V a)     -- application
   | Ref Var             -- variable reference
-  deriving (Eq, Data, Typeable)
+  deriving (Eq,Data,Typeable)
 
 class Compose a where
   -- Object language composition.
