@@ -138,11 +138,6 @@ swap :: Data a => V a -> [V a] -> V a
 swap = evalState . ccM (const swap')
   where swap' = do { (e:es) <- get; put es; return e }
 
-inObj :: Data a => (V a -> V a) -> a -> a
-inObj f a = case f (Obj a) of
-              Obj a -> a
-              _ -> error "inObj"
-
 
 ---------------
 -- Instances --

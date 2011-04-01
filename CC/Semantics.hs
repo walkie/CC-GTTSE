@@ -61,6 +61,7 @@ vary m (Dim d ts e) = do
     (t,i)  <- zip ts [0..]
     (qs,p) <- vary m (elim d i e)
     return (Q d t : qs, p)
+vary _ (Chc d _) = unboundDim d
 vary m e@(Obj _) = do
     (qs,ps) <- foldSem $ ccQ (vary m) e
     let Obj a = swap e (map value ps)
