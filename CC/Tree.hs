@@ -29,8 +29,9 @@ leaf a = Tree a []
 
 -- is this tree plain?
 isPlain :: Tree a -> Bool
-isPlain (Tree _ ts) = all isPlain ts
-isPlain _ = False
+isPlain (Tree _ ts)     = all isPlain ts
+isPlain (VTree (Obj t)) = isPlain t
+isPlain _               = False
 
 -- strip superfluous Obj constructors from a *plain* tree
 stripObj :: Tree a -> Tree a
