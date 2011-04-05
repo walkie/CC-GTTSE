@@ -32,6 +32,11 @@ isPlain :: Tree a -> Bool
 isPlain (Tree _ ts) = all isPlain ts
 isPlain _ = False
 
+-- strip superfluous Obj constructors from a *plain* tree
+stripObj :: Tree a -> Tree a
+stripObj (Tree a ts)     = Tree a (map stripObj ts)
+stripObj (VTree (Obj t)) = stripObj t
+
 
 ----------------------------------
 -- To/From Generic String Trees --
@@ -53,12 +58,6 @@ fromStringTree = (other `extR` string) . stripObj
                             guard (glength a == length es)
                             snd (gmapAccumM (\(x:xs) _ -> (xs,fromStringTree x)) es a)
         other _ = Nothing -- CC expression is not plain
-
--- strip superfluous Obj constructors out of a string tree,
--- will fail if the the tree is not plain
-stripObj :: Tree String -> Tree String
-stripObj (Tree a ts)     = Tree a (map stripObj ts)
-stripObj (VTree (Obj t)) = stripObj t
 
 -- The semantics of a variational generic string tree, automatically converting
 -- plain expressions back into the original data type.
