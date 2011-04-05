@@ -2,12 +2,14 @@
 
 module CC.Tree where
 
-import Control.Monad (guard)
+import Control.Applicative   (Applicative (pure,(<*>)))
+import Control.Monad         (ap,guard)
 import Data.Generics
 
 import CC.Syntax
 import CC.Semantics
 import CC.Pretty
+
 
 -----------------------
 -- Variational Trees --
@@ -26,6 +28,10 @@ instance Compose a => Compose (Tree a) where
 -- smart constructor for leaf nodes
 leaf :: a -> Tree a
 leaf a = Node a []
+
+addChildren :: [Tree a] -> Tree a -> Tree a
+addChildren cs (Node a ts) = Node a (ts++cs)
+addChildren cs (VTree e)   = VTree (fmap (addChildren cs) e)
 
 -- is this tree plain?
 isPlain :: Tree a -> Bool
@@ -67,9 +73,24 @@ semStringTree :: Data a => VTree String -> Sem (Maybe a)
 semStringTree t = [(d,fromStringTree s) | (d,s) <- sem t]
 
 
----------------------
--- Pretty Printing --
----------------------
+---------------
+-- Instances --
+---------------
+
+instance Monad Tree where
+  return = leaf
+  VTree e   >>= f = VTree (fmap (>>= f) e)
+  Node a ts >>= f = let ts' = map (>>= f) ts in
+                    case f a of
+                      Node b us -> Node b (us ++ ts')
+                      VTree e   -> VTree $ fmap (addChildren ts') e
+
+instance Applicative Tree where
+  pure  = return
+  (<*>) = ap
+
+instance Functor Tree where
+  fmap f e = e >>= return . f
 
 instance Show a => Show (Tree a) where
   show (Node a []) = show a
