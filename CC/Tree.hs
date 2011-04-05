@@ -37,6 +37,7 @@ isPlain _               = False
 stripObj :: Tree a -> Tree a
 stripObj (Tree a ts)     = Tree a (map stripObj ts)
 stripObj (VTree (Obj t)) = stripObj t
+stripObj _ = error "stripObj: Tree is not plain."
 
 
 ----------------------------------
