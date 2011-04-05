@@ -1,0 +1,5 @@
+Now:
+- Parser
+
+Future:
+- Type class that captures all of our various CC implementations?
