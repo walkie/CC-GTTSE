@@ -131,8 +131,8 @@ ve1 = Obj (fromExpr e1)
 ve2 :: VTree String
 ve2 = dimA $ ve1 >>= Obj . valToChc
   where times10 e = fromTerm $ Value 10 `Times` toTerm e
-        valToChc e@(Tree "Value" _) = VTree $ Chc "A" [Obj e, Obj (times10 e)]
-        valToChc (Tree s ts) = Tree s (map valToChc ts)
+        valToChc e@(Node "Value" _) = VTree $ Chc "A" [Obj e, Obj (times10 e)]
+        valToChc (Node s ts) = Node s (map valToChc ts)
 
 -- semantics of ve2, converting the trees back into expressions, then evaluating them
 ve2'  = [(d,toExpr s) | (d,s) <- sem ve2]

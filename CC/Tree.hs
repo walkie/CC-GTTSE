@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, TupleSections #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module CC.Tree where
 
@@ -15,27 +15,27 @@ import CC.Pretty
 
 type VTree a = V (Tree a)
 
-data Tree a = Tree a [Tree a]
+data Tree a = Node a [Tree a]
             | VTree (VTree a)
   deriving (Eq,Data,Typeable)
 
 instance Compose a => Compose (Tree a) where
-  Tree a as <.> Tree b bs = Tree (a <.> b) (zipWith (<.>) as bs ++ drop n as ++ drop n bs)
+  Node a as <.> Node b bs = Node (a <.> b) (zipWith (<.>) as bs ++ drop n as ++ drop n bs)
     where n = min (length as) (length bs)
 
 -- smart constructor for leaf nodes
 leaf :: a -> Tree a
-leaf a = Tree a []
+leaf a = Node a []
 
 -- is this tree plain?
 isPlain :: Tree a -> Bool
-isPlain (Tree _ ts)     = all isPlain ts
+isPlain (Node _ ts)     = all isPlain ts
 isPlain (VTree (Obj t)) = isPlain t
 isPlain _               = False
 
 -- strip superfluous Obj constructors from a *plain* tree
 stripObj :: Tree a -> Tree a
-stripObj (Tree a ts)     = Tree a (map stripObj ts)
+stripObj (Node a ts)     = Node a (map stripObj ts)
 stripObj (VTree (Obj t)) = stripObj t
 stripObj _ = error "stripObj: Tree is not plain."
 
@@ -47,13 +47,13 @@ stripObj _ = error "stripObj: Tree is not plain."
 -- Cram an arbitrary data type into a variational tree.
 toStringTree :: Data a => a -> Tree String
 toStringTree = other `extQ` leaf
-  where other a = Tree (showConstr (toConstr a)) (gmapQ toStringTree a)
+  where other a = Node (showConstr (toConstr a)) (gmapQ toStringTree a)
 
 -- Pull original data type out of a *plain* choice calculus expression.
 fromStringTree :: Data a => Tree String -> Maybe a
 fromStringTree = (other `extR` string) . stripObj
-  where string (Tree s []) = Just s
-        other  (Tree s es) = result
+  where string (Node s []) = Just s
+        other  (Node s es) = result
           where unM = undefined :: m a -> a -- only used for type
                 result = do c <- readConstr (dataTypeOf (unM result)) s
                             let a = fromConstr c
@@ -72,6 +72,6 @@ semStringTree t = [(d,fromStringTree s) | (d,s) <- sem t]
 ---------------------
 
 instance Show a => Show (Tree a) where
-  show (Tree a []) = show a
-  show (Tree a ts) = show a ++ (braces . commas id) (map show ts)
+  show (Node a []) = show a
+  show (Node a ts) = show a ++ (braces . commas id) (map show ts)
   show (VTree e)   = show e
