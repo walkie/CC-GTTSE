@@ -69,6 +69,14 @@ type VText = VList T.Text
 instance Compose T.Text where
   (<.>) = T.append
 
+append :: List T.Text -> T.Text -> List T.Text
+append Empty      t = Cons t Empty
+append (Cons u l) t = Cons (T.append u t) l
+append (VList e)  t = VList (fmap (`append` t) e)
+
+appendS :: List T.Text -> String -> List T.Text
+appendS l = append l . T.pack
+
 
 ---------------
 -- Instances --
