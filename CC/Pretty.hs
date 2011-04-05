@@ -1,5 +1,6 @@
 
-module CC.Pretty (showDim,showChc,showShr,showLet,
+module CC.Pretty (commas,parens,bracks,braces,square,
+                  showDim,showChc,showShr,showLet,
                   showAbs,showApp,showRef,
                   showSel,showEnv,showSem) where
 
@@ -13,7 +14,9 @@ import Data.List (intersperse)
 commas c = concat . intersperse (c ",")
 parens s = op "(" ++ s ++ op ")"
 bracks s = op "<" ++ s ++ op ">"
+braces s = "{" ++ s ++ "}"
 square s = "[" ++ s ++ "]"
+
 declIn k decl body = key k ++ " " ++ decl ++ key " in " ++ body
 
 op  = style blue
