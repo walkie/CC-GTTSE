@@ -6,6 +6,7 @@ import Data.Generics (Data)
 import CC.Syntax
 import CC.Static
 import CC.Pretty
+import CC.LambdaCalculus
 
 -----------
 -- Types --
@@ -42,10 +43,6 @@ value (Close _ v e) = Abs v e
 sem :: (Compose a, Data a) => V a -> Sem a
 sem e = [(d,p) | (d,Plain p) <- vary [] e]
 
--- pretty printed semantics
-psem :: (Show a, Compose a, Data a) => V a -> IO ()
-psem = putStr . showSem . sem
-
 -- partial semantics composition (bowtie in FSE-11 paper)
 compose :: (Compose a, Data a) => PSem a -> PSem a -> PSem a
 compose sl sr = concatMap (composeR sr) sl
@@ -59,7 +56,7 @@ vary :: (Compose a, Data a) => Env a -> V a -> PSem a
 vary m (Ref v)     = maybe (unboundVar v) id (lookup v m)
 vary m (Abs v e)   = [([], Close m v e)]
 vary m (App l r)   = vary m l `compose` vary m r
-vary m (Let v b u) = [([], Close m v u)] `compose` vary m (ccfix @@ Abs v b)
+vary m (Let v b u) = [([], Close m v u)] `compose` vary m (fix @@ Abs v b)
 vary m (Shr v b u) = do
     (qb,vb) <- vary m b
     (qu,vu) <- [([], Close m v u)] `compose` [([],vb)]
@@ -92,6 +89,19 @@ elim d i e = ccT (elim d i) e
 
 unboundVar v = error $ "Unbound variable: " ++ v
 unboundDim d = error $ "Unbound dimension: " ++ d
+
+
+---------------------
+-- Pretty Printing --
+---------------------
+
+-- pretty print a semantics
+pretty :: Show a => Sem a -> IO ()
+pretty = putStr . showSem
+
+-- short cut for computing the semantics and pretty printing it
+psem :: (Show a, Compose a, Data a) => V a -> IO ()
+psem = pretty . sem
 
 
 ---------------

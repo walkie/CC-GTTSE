@@ -18,9 +18,10 @@ import CC.Pretty
 -- Syntax --
 ------------
 
-type Dim = String
-type Tag = String
-type Var = String
+type Name = String
+type Dim = Name
+type Tag = Name
+type Var = Name
 
 -- choice calculus expressions (read: variational x)
 data V a =
@@ -45,39 +46,32 @@ class Compose a where
 -- Smart Constructors --
 ------------------------
 
+-- infix application operator
 (@@) :: V a -> V a -> V a
 (@@) = App
 infixl 1 @@
 
+-- a list of names derived from the given name, for example:
+-- names 4 "x" == ["x1","x2","x3","x4"]
+names :: Name -> Int -> [Name]
+names x n = [x ++ show i | i <- [1..n]]
+
 -- construct a dimension with arbitrary tag names
 dimN :: Dim -> Int -> V a -> V a
-dimN d n = Dim d ['t' : show i | i <- [1..n]]
+dimN d n = Dim d (names "t" n)
 
+-- some simple binary dimensions
 dimA = Dim "A" ["a","b"]
 dimB = Dim "B" ["c","d"]
 dimC = Dim "C" ["e","f"]
 
+-- construct an abstraction for many arguments at once
+abss :: [Var] -> V a -> V a
+abss vs b = foldr ($) b (map Abs vs)
 
--- some useful lambda calculus functions
---
-
--- identity
-ccid = Abs "x" (Ref "x")
-
--- booleans
-cctrue  = Abs "t" $ Abs "f" $ Ref "t"
-ccfalse = Abs "t" $ Abs "f" $ Ref "f"
-
--- function composition
-ccdot = Abs "f" $ Abs "g" $ Abs "x"
-      $ Ref "f" @@ (Ref "g" @@ Ref "x")
-
--- church numerals
-ccnum n = Abs "f" $ Abs "x" (iterate (Ref "f" @@) (Ref "x") !! n)
-
--- fixpoint combinator (Y)
-ccfix = Abs "r" (e @@ e)
-  where e = Abs "a" (Ref "r" @@ (Ref "a" @@ Ref "a"))
+-- construct an abstraction for many arguments with auto-generated names
+absN :: Var -> Int -> V a -> V a
+absN v = abss . names v
 
 
 ----------------------
