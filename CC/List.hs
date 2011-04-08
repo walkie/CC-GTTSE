@@ -114,6 +114,11 @@ instance Functor List where
   fmap f e = e >>= return . f
 
 instance Show a => Show (List a) where
+  show Empty      = "[]"
+  show (Cons a l) = show a ++ ":" ++ show l
+  show (VList e)  = show e
+  {-
   show Empty      = ""
   show (Cons a l) = show a ++ show l
   show (VList e)  = show e
+  -}
