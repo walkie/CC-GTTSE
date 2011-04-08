@@ -5,7 +5,6 @@ module CC.List where
 import Control.Applicative   (Applicative (pure,(<*>)))
 import Control.Monad         (ap)
 import Data.Generics (Data,Typeable)
-import qualified Data.Text as T
 
 import CC.Syntax
 import CC.Semantics
@@ -23,14 +22,27 @@ data List a = Cons a (List a)
             | VList (VList a) 
   deriving (Eq,Data,Typeable)
 
+instance Compose (List a) where
+  (<.>) = cat
+
+{-
 instance Compose a => Compose (List a) where
   Cons a l <.> Cons b r = Cons (a <.> b) (l <.> r)
   Empty <.> r = r
   l <.> Empty = l
+-}
 
 -- smart constructor for singleton lists
 singleton :: a -> List a
 singleton a = Cons a Empty
+
+-- smart constructor for consing to a vlist directly
+cons :: a -> VList a -> VList a
+cons a v = Obj (Cons a (VList v))
+
+-- an empty vlist
+empty :: VList a
+empty  = Obj Empty
 
 -- is this list plain?
 isPlain :: List a -> Bool
@@ -64,6 +76,7 @@ cat (VList e)  r = VList (fmap (`cat` r) e)
 -- Variational Text --
 ----------------------
 
+{-
 type VText = VList T.Text
 
 instance Compose T.Text where
@@ -76,6 +89,7 @@ append (VList e)  t = VList (fmap (`append` t) e)
 
 appendS :: List T.Text -> String -> List T.Text
 appendS l = append l . T.pack
+-}
 
 
 ---------------
