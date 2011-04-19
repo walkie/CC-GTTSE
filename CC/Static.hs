@@ -46,6 +46,16 @@ freeVars (Abs v e)   = v `delete` freeVars e
 freeVars (Ref v)     = singleton v
 freeVars e           = unions (ccQ freeVars e)
 
+-- variable substitution
+subVar :: Data a => Var -> V a -> V a -> V a
+subVar v e   (Ref w)     | v == w = e
+subVar v e f@(Shr w _ _) | v == w = f
+subVar v e f@(Let w _ _) | v == w = f
+subVar v e f@(Abs w _)   | v == w = f
+subVar v e f = ccT (subVar v e) f
+
+-- TODO add renaming vars and dims
+
 
 ---------------------
 -- Well Formedness --
