@@ -42,6 +42,8 @@ showSem :: (Show a, Show b) => [([a],b)] -> String
 showSem = concatMap row
   where row (qs,e) = square (commas id (map show qs)) ++ "  =>  " ++ show e ++ "\n"
 
+
+--
 -- Martin's color module (modified)
 --
 
