@@ -23,6 +23,11 @@ data List a = Cons a (List a)
             | VList (VList a) 
   deriving (Eq,Data,Typeable)
 
+instance Data a => VT (List a) where
+  cleanup (Cons a l)      = Cons a (cleanup l)
+  cleanup Empty           = Empty
+  cleanup (VList (Obj a)) = a
+
 --
 -- working with plain lists
 

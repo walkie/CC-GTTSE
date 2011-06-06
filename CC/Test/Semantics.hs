@@ -20,28 +20,14 @@ runTests = defaultMain tests
 
 test_sem = testSames "sem" sem
   ["basic","sharing"]
-  [[da],[dadbAbs,dadbLet,dadbShr]]
+  [[da],[dadbShr]]
       -- da
-  [ [ [([a],1),([b],3)] ],
-      -- dadbAbs
-    [ [([c,a],1),
-       ([c,b],3),
-       ([d,a,a],2),
-       ([d,a,b],4),
-       ([d,b,a],4),
-       ([d,b,b],6)],
-      -- dadbLet
-      [([c,a],1),
-       ([c,b],3),
-       ([d,a,a],2),
-       ([d,a,b],4),
-       ([d,b,a],4),
-       ([d,b,b],6)],
+  [ [ [([a],1),([b],2)] ],
       -- dadbShr
-      [([a,c],1),
-       ([a,d],2),
-       ([b,c],3),
-       ([b,d],6)] ] ]
+    [ [([a,c],1),
+       ([a,d],3),
+       ([b,c],2),
+       ([b,d],3)] ] ]
 
 -----------------
 -- Expressions --
@@ -53,8 +39,6 @@ b = Q "A" "b"
 c = Q "B" "c"
 d = Q "B" "d"
 
-da = dimA $ Chc "A" [Obj 1, Obj 3] :: V Int
-db = dimB $ Chc "B" [Ref "x", Ref "x" @@ Ref "x"]
-dadbAbs = Abs "x" db @@ da
-dadbLet = Let "x" da db
+da = dimA $ Chc "A" [Obj 1, Obj 2] :: V Int
+db = dimB $ Chc "B" [Ref "x", Obj 3]
 dadbShr = Shr "x" da db

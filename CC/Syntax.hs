@@ -3,13 +3,13 @@
 module CC.Syntax where
 
 import Control.Applicative   (Applicative (pure,(<*>)))
-import Control.Monad         (ap,liftM)
+import Control.Monad         (ap,liftM,liftM2)
 import Control.Monad.State   (evalState,get,put)
 import Data.Foldable         (Foldable (foldMap))
 import Data.Functor          ((<$>))
 import Data.Functor.Identity (Identity (Identity,runIdentity))
 import Data.Generics         (Data,Typeable,cast,gmapQ,gmapM)
-import Data.Monoid           (mconcat)
+import Data.Monoid           (mappend,mconcat,mempty)
 import Data.Traversable      (Traversable (sequenceA,traverse))
 
 import CC.Pretty
@@ -21,28 +21,38 @@ import CC.Pretty
 type Name = String
 type Dim = Name
 type Tag = Name
+type Var = Name
 
 -- choice calculus expressions (read: variational x)
 data V a =
     Obj a               -- object language stuff
   | Dim Dim [Tag] (V a) -- dimension declaration
   | Chc Dim [V a]       -- choice branching
+  | Shr Var (V a) (V a) -- static variable binding
+  | Ref Var             -- variable reference
   deriving (Eq,Data,Typeable)
 
 -- true if the top node is of the corresponding syntactic category
-isObj, isDim, isChc :: V a -> Bool
+isObj, isDim, isChc, isShr, isRef :: V a -> Bool
 isObj (Obj _)     = True
 isObj _           = False
 isDim (Dim _ _ _) = True
 isDim _           = False
 isChc (Chc _ _)   = True
 isChc _           = False
+isShr (Shr _ _ _) = True
+isShr _           = False
+isRef (Ref _)     = True
+isRef _           = False
 
-{-
-class VType t where
-  toT   :: V t -> t
-  fromT :: t -> t
--}
+class Data a => VT a where
+  cleanup :: a -> a
+
+instance VT Int  where cleanup = id
+instance VT Bool where cleanup = id
+instance VT Char where cleanup = id
+instance VT a => VT [a] where
+  cleanup = map cleanup
 
 
 ------------------------
@@ -97,12 +107,16 @@ ccQ :: Data a => (V a -> r) -> V a -> [r]
 ccQ f (Obj a)     = gccQ f a
 ccQ f (Dim _ _ e) = [f e]
 ccQ f (Chc _ es)  = map f es
+ccQ f (Shr _ b u) = [f b,f u]
+ccQ f (Ref _)     = []
 
 -- apply a monadic transformation to all CC subexpressions
 ccM :: (Monad m, Data a) => (V a -> m (V a)) -> V a -> m (V a)
 ccM f (Obj a)     = liftM Obj (gccM f a)
 ccM f (Dim d t e) = liftM (Dim d t) (f e)
 ccM f (Chc d es)  = liftM (Chc d) (mapM f es)
+ccM f (Shr v b u) = liftM2 (Shr v) (f b) (f u)
+ccM f (Ref v)     = return (Ref v)
 
 -- apply a transformation to all CC subexpressions
 ccT :: Data a => (V a -> V a) -> V a -> V a
@@ -127,6 +141,8 @@ instance Monad V where
   Obj a     >>= f = f a
   Dim d t e >>= f = Dim d t (e >>= f)
   Chc d es  >>= f = Chc d (map (>>= f) es)
+  -- Shr v b u >>= f = Shr v (b >>= f) (u >>= f)
+  -- Ref v     >>= _ = Ref v
 
 instance Applicative V where
   pure  = return
@@ -139,13 +155,19 @@ instance Foldable V where
   foldMap f (Obj a)     = f a
   foldMap f (Dim _ _ e) = foldMap f e
   foldMap f (Chc _ es)  = mconcat (map (foldMap f) es)
+  foldMap f (Shr _ b u) = foldMap f b `mappend` foldMap f u
+  foldMap f (Ref v)     = mempty
   
 instance Traversable V where
   traverse f (Obj a)     = Obj     <$> f a
   traverse f (Dim d t e) = Dim d t <$> traverse f e
   traverse f (Chc d es)  = Chc d   <$> sequenceA (map (traverse f) es)
+  traverse f (Shr v b u) = Shr v   <$> traverse f b <*> traverse f u
+  traverse f (Ref v)     = pure (Ref v)
 
 instance Show a => Show (V a) where
   show (Obj a)     = show a
   show (Dim d t e) = showDim d t (show e)
   show (Chc d es)  = showChc d (map show es)
+  show (Shr v b u) = showShr v (show b) (show u)
+  show (Ref v)     = showRef v
