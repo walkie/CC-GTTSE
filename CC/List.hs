@@ -61,20 +61,9 @@ vcons a v = Obj (Cons a (VList v))
 vempty :: VList a
 vempty  = Obj Empty
 
+-- concatenate two variational lists
 vcat :: VList a -> VList a -> VList a
 vcat l r = Obj $ cat (VList l) (VList r)
-
--- is this list plain?
-isPlain :: List a -> Bool
-isPlain (Cons _ l)      = isPlain l
-isPlain (VList (Obj l)) = isPlain l
-isPlain _               = False
-
--- strip superfluous Obj constructors from a *plain* list
-stripObj :: List a -> List a
-stripObj (Cons a l)      = Cons a (stripObj l)
-stripObj (VList (Obj l)) = stripObj l
-stripObj _ = error "stripObj: List is not plain."
 
 
 --------------
