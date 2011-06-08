@@ -3,14 +3,12 @@
 module CC.List where
 
 import Control.Applicative (Applicative (pure,(<*>)))
-import Control.Monad       (ap)
+import Control.Monad       (ap,liftM2)
 import Data.Generics       (Data,Typeable)
 
 import CC.Syntax
 import CC.Pretty
 
-import CC.Semantics
-import CC.Share
 
 -----------------------
 -- Variational Lists --
@@ -43,6 +41,7 @@ toList = foldr Cons Empty
 fromList :: List a -> [a]
 fromList Empty      = []
 fromList (Cons a l) = a : fromList l
+fromList (VList (Obj l)) = fromList l
 
 -- concatenate two lists
 cat :: List a -> List a -> List a
@@ -54,8 +53,12 @@ cat (VList e)  r = VList (fmap (`cat` r) e)
 -- working with variational lists
 
 -- smart constructor for consing to a vlist directly
+--   (this one is strange because not all arguments are variational...)
 vcons :: a -> VList a -> VList a
-vcons a v = Obj (Cons a (VList v))
+vcons a vl = Obj (Cons a (VList vl))
+--vcons va vl = va >>= \a -> Obj (Cons a (VList vl))
+
+infixr 5 `vcons`
 
 -- an empty vlist
 vempty :: VList a
@@ -65,13 +68,32 @@ vempty  = Obj Empty
 vcat :: VList a -> VList a -> VList a
 vcat l r = Obj $ cat (VList l) (VList r)
 
+-- variational foldr (old)
+vfoldr :: (a -> b -> b) -> b -> List a -> V b
+vfoldr _ b Empty      = Obj b
+vfoldr f b (Cons a l) = fmap (f a) (vfoldr f b l)
+vfoldr f b (VList vl) = vl >>= vfoldr f b
+
+vfoldl :: (V a -> b -> V a) -> V a -> VList b -> V a
+vfoldl f a vl = vl >>= fold f a
+  where 
+    fold _ a Empty      = a
+    fold f a (Cons b l) = fold f (f a b) l
+    fold f a (VList vl) = vfoldl f a vl
+
+vscanl :: (V a -> b -> V a) -> V a -> VList b -> VList a
+vscanl f va vl = liftM2 Cons va (vl >>= scan f va)
+  where 
+    scan _ _  Empty      = vempty
+    scan f va (Cons b l) = liftM2 Cons va' (scan f va' l) where va' = f va b
+    scan f va (VList vl) = vl >>= scan f va
 
 --------------
 -- Examples --
 --------------
 
-e1 = dimA $ Chc "A" [vempty, 1 `vcons` vempty]
-e2 = dimB $ Chc "B" [vempty, 2 `vcons` e1]
+b1  = dimB $ Chc "B" [vempty, 2 `vcons` vempty]
+ab1 = dimA $ Chc "A" [vempty, 1 `vcons` b1]
 
 ---------------
 -- Instances --
