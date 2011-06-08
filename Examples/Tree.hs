@@ -44,20 +44,23 @@ eval (Term t)   = term t
         term (Value a)   = a
 
 
--- functions for converting math expressions into trees of strings
+-- functions for converting math expressions to/from string trees
 --
 
 toExpr :: Tree String -> Expr Int
-toExpr = fromJust . fromStringTree
+toExpr = fromJust . fromST
 
 fromExpr :: Expr Int -> Tree String
-fromExpr = toStringTree
+fromExpr = toST
 
 toTerm :: Tree String -> Term Int
-toTerm = fromJust . fromStringTree
+toTerm = fromJust . fromST
 
 fromTerm :: Term Int -> Tree String
-fromTerm = toStringTree
+fromTerm = toST
+
+psemExpr t = pretty [(d,toExpr s) | (d,s) <- sem t]
+psemTerm t = pretty [(d,toTerm s) | (d,s) <- sem t]
 
 
 -- handy smart constructor
@@ -82,6 +85,13 @@ ve2 = dimA $ ve1 >>= Obj . valToChc
         valToChc e@(Node "Value" _) = VTree $ Chc "A" [Obj e, Obj (times10 e)]
         valToChc (Node s ts) = Node s (map valToChc ts)
 
--- semantics of ve2, converting the trees back into expressions, then evaluating them
-ve2'  = [(d,toExpr s) | (d,s) <- sem ve2]
-ve2'' = [(d,eval e) | (d,e) <- ve2']
+{- in GHCi:
+
+*Examples.Tree> psemExpr ve1
+[]  =>  1+2*(3+4)
+
+*Examples.Tree> psemExpr ve2
+[A.a]  =>  1+2*(3+4)
+[A.b]  =>  10*1+10*2*(10*3+10*4)
+
+-}

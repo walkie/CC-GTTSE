@@ -24,7 +24,8 @@ data List a = Cons a (List a)
 instance Data a => VT (List a) where
   cleanup (Cons a l)      = Cons a (cleanup l)
   cleanup Empty           = Empty
-  cleanup (VList (Obj a)) = a
+  cleanup (VList (Obj l)) = cleanup l
+  cleanup _ = error "cleanup: List is not plain."
 
 --
 -- working with plain lists
