@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, TypeSynonymInstances #-}
 
-module CC.Robot where
+module Examples.Robot where
 
 import Control.Monad (liftM,liftM2,liftM3)
 import Data.Generics (Data,Typeable)
@@ -125,37 +125,37 @@ is = NoOp `vcons` (dimC $ Chc "C" [TurnL `vcons` Inc `vcons` tail, Dec `vcons` t
 
 {- in GHCi:
 
-*CC.Robot> s
+*Examples.Robot> s
 dim A<a,b> in A<(0,0),(5,5)>
 
-*CC.Robot> r
+*Examples.Robot> r
 dim B<c,d> in B<Robot N 1,Robot E 2>
 
-*CC.Robot> i
+*Examples.Robot> i
 dim C<e,f> in C<TurnL,TurnR>
 
-*CC.Robot> is
+*Examples.Robot> is
 NoOp:dim C<e,f> in C<TurnL:Inc:NoOp:[],Dec:NoOp:[]>
 
-*CC.Robot> psem $ vexec r i
+*Examples.Robot> psem $ vexec r i
 [B.c,C.e]  =>  Robot W 1
 [B.c,C.f]  =>  Robot E 1
 [B.d,C.e]  =>  Robot N 2
 [B.d,C.f]  =>  Robot S 2
 
-*CC.Robot> psem $ vexecAll r is
+*Examples.Robot> psem $ vexecAll r is
 [C.e,B.c]  =>  Robot W 2
 [C.e,B.d]  =>  Robot N 3
 [C.f,B.c]  =>  Robot N 0
 [C.f,B.d]  =>  Robot E 1
 
-*CC.Robot> psem $ vstep s r
+*Examples.Robot> psem $ vstep s r
 [A.a,B.c]  =>  (0,1)
 [A.a,B.d]  =>  (2,0)
 [A.b,B.c]  =>  (5,6)
 [A.b,B.d]  =>  (7,5)
 
-*CC.Robot> psem $ vrun s r is
+*Examples.Robot> psem $ vrun s r is
 [B.c,B.c,C.e,B.c,B.c,B.c,A.a]  =>  (-5,2)
 [B.c,B.c,C.e,B.c,B.c,B.c,A.b]  =>  (0,7)
 [B.c,B.c,C.e,B.c,B.c,B.d,A.a]  =>  (-3,5)
