@@ -25,9 +25,7 @@ type Sem a = Map Dec a
 
 -- variational semantics
 sem :: VT a => V a -> Sem a
--- sem e = [(q, makePlain (expand e')) | (q,e') <- vary e]
-sem e = [(q, makePlain e') | (q,e') <- vary e]
-  where makePlain (Obj a) = cleanup a
+sem e = [(q, cleanup a) | (q, Obj a) <- vary e]
 
 -- V in the TOSEM paper
 vary :: Data a => V a -> Sem (V a)
@@ -50,12 +48,6 @@ elim :: Data a => Dim -> Int -> V a -> V a
 elim d i   (Chc d' es)  | d == d' = elim d i (es !! i)
 elim d _ e@(Dim d' _ _) | d == d' = e
 elim d i e = ccT (elim d i) e
-
--- -- sharing expansion
--- expand :: Data a => V a -> V a
--- expand (Shr v b u) = expand (subVar v b u)
--- expand (Ref v) = error $ "unbound variable: " ++ v
--- expand e = ccT expand e
 
 
 ---------------------

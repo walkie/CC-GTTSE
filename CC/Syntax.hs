@@ -60,10 +60,8 @@ names x n = [x ++ show i | i <- [1..n]]
 
 -- construct a dimension with arbitrary tag names
 -- 
---  NOTE: WHY NOT use "" instead of "t" ??
---
 dimN :: Dim -> Int -> V a -> V a
-dimN d n = Dim d (names "t" n)
+dimN d n = Dim d (names "" n)
 
 -- injecting plain values into V
 --

@@ -12,7 +12,6 @@ import CC.Static
 import CC.Semantics
 
 
--- this is wrong, since we could have dims and choices within Objs also...
 share :: Data a => V a -> (V a -> V a) -> V a
 share (Dim d ts e) f = Dim d ts $ share e f
 share (Chc d es)   f = Chc d [share e f | e <- es]
@@ -29,6 +28,8 @@ helper i e | i < length ss = case s of
         (h,s:t)  = splitAt i ss
 
 
+-- examples for testing
+--
 
 e1  = Shr "v" ab1 $ Ref "v"
 e1' = share   ab1 (\v -> v)
