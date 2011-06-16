@@ -39,6 +39,9 @@ addChildren cs (VTree e)   = VTree (fmap (addChildren cs) e)
 -- To/From Generic String Trees --
 ----------------------------------
 
+type ST  = Tree String
+type VST = V ST
+
 -- Cram an arbitrary data type into a variational tree.
 toST :: Data a => a -> Tree String
 toST = other `extQ` leaf
