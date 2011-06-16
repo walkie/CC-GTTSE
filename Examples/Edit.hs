@@ -36,9 +36,8 @@ matchQueryEdit p q t e = do
 -- Hoist a dimension to the top level of an expression, indicating whether
 -- or not choices were captured.
 hoist :: Data a => Dim -> V a -> Maybe (V a, Bool)
-hoist d e = do
-    (ts, e') <- matchQueryEdit named tags strip e
-    return (Dim d ts e', S.member d (freeDims e))
+hoist d e = do (ts, e') <- matchQueryEdit named tags strip e
+               return (Dim d ts e', S.member d (freeDims e))
   where named (Dim d' _ _) = d == d'
         named _            = False
         tags  (Dim _ ts _) = ts

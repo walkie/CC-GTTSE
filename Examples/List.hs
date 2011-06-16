@@ -262,9 +262,9 @@ data Food = Steak | Pasta | Beer | Fries | Cake
 -- 
 -- main   = cMain [Steak,Pasta]
 -- drink  = cMain [Beer,Wine]
--- desert = aDim' "Desert" ["c","f"] [Cake,Fruit]
+-- dessert = aDim' "Dessert" ["c","f"] [Cake,Fruit]
 -- 
--- special = aDim "Drink" [y,n] [cMain [Beer,Wine],desert] `vcons` vempty
+-- special = aDim "Drink" [y,n] [cMain [Beer,Wine],dessert] `vcons` vempty
 -- 
 -- menu = Dim "Main" ["m","p"] $ main `vcons` special
 
@@ -276,22 +276,22 @@ data Food = Steak | Pasta | Beer | Fries | Cake
 -- Too many length variation, no nested dimension
 --
 -- main = chc "Main" $ map vList [[Steak,Fries],[Pasta]]
--- desert = aDim "Desert" [y,n] [vsingle Cake,vempty]
--- desert' = chc "Desert" [vsingle Cake,vempty]
+-- dessert = aDim "Dessert" [y,n] [vsingle Cake,vempty]
+-- dessert' = chc "Dessert" [vsingle Cake,vempty]
 -- 
--- menu = Dim "Main" ["m","p"] $ main `vcat` desert
+-- menu = Dim "Main" ["m","p"] $ main `vcat` dessert
 -- 
 -- menu' = Dim "Main" ["m","p"] $ 
---         Dim "Desert" [y,n] 
---             main `vcat` desert'
+--         Dim "Dessert" [y,n] 
+--             main `vcat` dessert'
 -- 
 
-desert :: VList Food
-desert = aDim "Desert" [y,n] [vsingle Cake,vempty]
+dessert :: VList Food
+dessert = aDim "Dessert" [y,n] [vsingle Cake,vempty]
 
 menu :: VList Food
 menu = aDim "Main" ["meat","pasta"] 
-             [vlist [Steak,Fries],Pasta `cons` desert]
+             [vlist [Steak,Fries],Pasta `cons` dessert]
 
 -- data Drink = Martini | Sherry
 --              deriving (Eq,Show,Data,Typeable)
