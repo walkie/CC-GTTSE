@@ -6,6 +6,7 @@ import Data.Generics (Data)
 import CC.Syntax
 import CC.Static
 import CC.Pretty
+import CC.Zipper
 
 -----------
 -- Types --

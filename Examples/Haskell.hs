@@ -5,12 +5,14 @@ module Examples.Haskell where
 import Data.Generics
 
 import CC.Syntax
-import CC.Tree
+--import CC.Tree
 
 import CC.Semantics
 import CC.Static
 
-data Def = Fun Name [Name] Exp
+type Haskell = [Def]
+
+data Def = Fun Name [Exp] Exp
       -- | ...
   deriving (Eq,Show,Data,Typeable)
 
@@ -18,6 +20,7 @@ data Exp = App Exp Exp
          | Ref Name
          | Val Int
       -- | ...
+         | VExp (V Exp)
   deriving (Eq,Show,Data,Typeable)
 
 infixl 1 `App`
@@ -51,5 +54,3 @@ twice :: VST
 twice = Dim "Par" ["x","y"]
       $ Dim "Impl" ["plus","times"]
       $ Obj $ everywhere (mkT xy) $ everywhere (mkT pt) (toST xp)
-
-

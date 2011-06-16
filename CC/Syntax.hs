@@ -23,21 +23,13 @@ type Dim = Name
 type Tag = Name
 type Var = Name
 
--- choice calculus expressions (read: variational x)
+-- Choice calculus expressions (read: variational x)
 data V a =
     Obj a               -- object language stuff
   | Dim Dim [Tag] (V a) -- dimension declaration
   | Chc Dim [V a]       -- choice branching
   deriving (Eq,Data,Typeable)
 
--- true if the top node is of the corresponding syntactic category
-isObj, isDim, isChc :: V a -> Bool
-isObj (Obj _)     = True
-isObj _           = False
-isDim (Dim _ _ _) = True
-isDim _           = False
-isChc (Chc _ _)   = True
-isChc _           = False
 
 class Data a => VT a where
   cleanup :: a -> a
