@@ -56,6 +56,14 @@ end = Ref ""
 -- Twice example.
 --
 
+twice = Dim "Par" ["x","y"]
+      $ Dim "Impl" ["plus","times"]
+      $ haskell $ Let "twice" [v] i end
+  where v = VExp $ chc' "Par" [Ref "x", Ref "y"]
+        i = VExp $ chc' "Impl" [op "+" v v, op "*" (Val 2) v]
+
+-- deriving with SYB...
+
 xp = def "twice" ["x"] (op "+" (Ref "x") (Ref "x")) end
 yp = def "twice" ["y"] (op "+" (Ref "y") (Ref "y")) end
 xt = def "twice" ["x"] (op "*" (Val 2) (Ref "x")) end
@@ -72,8 +80,8 @@ varyImpl = Dim "Impl" ["plus","times"] . everywhere (mkT impl)
           VExp $ chc' "Impl" [e, op "*" (Val 2) r]
         impl e = e
 
-twice  = (varyPar . varyImpl . haskell) xp
-twice' = (varyImpl . varyPar . haskell) xp
+twice'  = (varyPar . varyImpl . haskell) xp
+twice'' = (varyImpl . varyPar . haskell) xp
 
 
 ---------------------
