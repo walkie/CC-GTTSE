@@ -31,16 +31,6 @@ data V a =
   deriving (Eq,Data,Typeable)
 
 
-class Data a => VT a where
-  cleanup :: a -> a
-
-instance VT Int  where cleanup = id
-instance VT Bool where cleanup = id
-instance VT Char where cleanup = id
-instance VT a => VT [a] where
-  cleanup = map cleanup
-
-
 ------------------------
 -- Smart Constructors --
 ------------------------
@@ -55,17 +45,10 @@ names x n = [x ++ show i | i <- [1..n]]
 dimN :: Dim -> Int -> V a -> V a
 dimN d n = Dim d (names "" n)
 
--- injecting plain values into V
---
---  NOTE: maybe call it "lift" ??
---
-plain :: a -> V a
-plain = Obj
-
 chc = Chc
 
 chc' :: Dim -> [a] -> V a
-chc' d = Chc d . map plain
+chc' d = Chc d . map Obj
 
 -- atomic dimension/choice
 aDim  d ts cs = Dim d ts $ chc d cs

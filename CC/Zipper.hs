@@ -96,13 +96,13 @@ transAll f t z | f z       = continue (t z)
                | otherwise = continue z
   where continue = rightT (transAll f t) . downT (transAll f t)
 
--- Cleanup a plain object. (Inexplicably broken--seems perfectly correct...)
+-- Cleanup a plain object.
 clean :: Data a => a -> a
 clean a = (unObj . fromZipper . downT cln . toZipper . Obj) a
-  where cln z | atObj z   = let Just (Obj b) = getHole z
-                            in continue (upT (setHole (b `asTypeOf` a)) z)
-              | otherwise = continue z
-        continue = leftT cln . downT cln
+  where cln z | atObj z   = maybe z cln
+                          $ do Obj b <- getHole z
+                               up z >>= return . setHole (b `asTypeOf` a)
+              | otherwise = maybe (maybe z cln (right z)) cln (down' z)
         unObj (Obj a) = a
 
 -- Create a new dimension at the current location.

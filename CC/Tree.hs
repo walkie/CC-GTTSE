@@ -21,11 +21,6 @@ data Tree a = Node a [Tree a]
             | VTree (VTree a)
   deriving (Eq,Data,Typeable)
 
-instance Data a => VT (Tree a) where
-  cleanup (Node a ts)     = Node a (map cleanup ts)
-  cleanup (VTree (Obj t)) = cleanup t
-  cleanup _ = error "cleanup: Tree is not plain."
-
 -- smart constructor for leaf nodes
 leaf :: a -> Tree a
 leaf a = Node a []

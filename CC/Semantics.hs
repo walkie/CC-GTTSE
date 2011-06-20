@@ -25,8 +25,8 @@ type Sem a = Map Dec a
 ---------------
 
 -- variational semantics
-sem :: VT a => V a -> Sem a
-sem e = [(q, cleanup a) | (q, Obj a) <- vary e]
+sem :: Data a => V a -> Sem a
+sem e = [(q, clean a) | (q, Obj a) <- vary e]
 
 -- V in the TOSEM paper
 vary :: Data a => V a -> Sem (V a)
@@ -60,7 +60,7 @@ pretty :: Show a => Sem a -> IO ()
 pretty = putStr . showSem
 
 -- short cut for computing the semantics and pretty printing it
-psem :: (Show a, VT a) => V a -> IO ()
+psem :: (Show a, Data a) => V a -> IO ()
 psem = pretty . sem
 
 

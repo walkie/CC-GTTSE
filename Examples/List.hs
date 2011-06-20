@@ -10,7 +10,6 @@ import List                (intersperse)
 import CC.Syntax
 import CC.Pretty
 import CC.Semantics
--- import CC.Share
 
 import Examples.Names
 
@@ -29,11 +28,6 @@ data List a = Cons a (List a)
             | VList (VList a) 
   deriving (Eq,Data,Typeable)
 
-instance Data a => VT (List a) where
-  cleanup (Cons a l)      = Cons a (cleanup l)
-  cleanup Empty           = Empty
-  cleanup (VList (Obj a)) = a
-
 --
 -- working with plain lists
 --
@@ -46,7 +40,9 @@ single a = Cons a Empty
 toList :: [a] -> List a
 toList = foldr Cons Empty
 
-list = toList
+many = toList
+
+list = Obj
 
 -- from a *plain* List value to a Haskell list
 fromList :: List a -> [a]
@@ -65,34 +61,28 @@ liftL = (. fromList)
 
 -- smart constructors and functions for consing to a vlist directly
 vsingle :: a -> VList a
-vsingle = plain . single
+vsingle = list . single
 
 vList :: [a] -> VList a
-vList = plain . toList
+vList = list . toList
 
-vlist = plain . list
+vlist = list . many
 
 cons :: a -> VList a -> VList a
-cons a v = plain (Cons a (VList v))
+cons a v = list (Cons a (VList v))
 
 vcons :: V a -> VList a -> VList a
 vcons vx vxs = do {x <- vx; cons x vxs}
 
 -- an empty vlist
 vempty :: VList a
-vempty  = plain Empty
+vempty  = list Empty
 
 -- is this list plain?
 isPlain :: List a -> Bool
 isPlain (Cons _ l)      = isPlain l
 isPlain (VList (Obj l)) = isPlain l
 isPlain _               = False
-
--- strip superfluous Obj constructors from a *plain* list
-stripObj :: List a -> List a
-stripObj (Cons a l)      = Cons a (stripObj l)
-stripObj (VList (Obj l)) = stripObj l
-stripObj _ = error "stripObj: List is not plain."
 
 
 --
@@ -101,7 +91,7 @@ stripObj _ = error "stripObj: List is not plain."
 
 -- foldr
 fold :: (a -> b -> b) -> b -> List a -> V b
-fold _ b Empty      = plain b
+fold _ b Empty      = Obj b
 fold f b (Cons a l) = fmap (f a) (fold f b l)
 fold f b (VList vl) = vl >>= fold f b
 -- fold f b (VList vl) = liftV (fold f b) vl
@@ -111,8 +101,11 @@ fold f b (VList vl) = vl >>= fold f b
 len :: List a -> V Int
 len = fold (\_ s->succ s) 0
 {-
+
+int = Obj
+
 len :: List a -> V Int
-len Empty       = plain 0
+len Empty       = int 0
 len (Cons _ xs) = fmap (+1) (len xs)
 len (VList vl)  = vl >>= len
 -- len (VList vl)  = liftV len vl
@@ -126,7 +119,7 @@ sumL :: List Int -> V Int
 sumL = fold (+) 0
 {-
 sumL :: List Int -> V Int
-sumL Empty       = plain 0
+sumL Empty       = list 0
 sumL (Cons x xs) = fmap (x+) (sumL xs)
 sumL (VList vl)  = vl >>= sumL
 -}
@@ -136,7 +129,7 @@ vsum = liftV sumL
 -- nth
 nth :: Int -> List a -> V a
 nth _ Empty       = undefined
-nth 1 (Cons x _)  = plain x
+nth 1 (Cons x _)  = Obj x
 nth n (Cons _ xs) = nth (n-1) xs
 nth n (VList vl)  = vl >>= nth n
 
@@ -165,8 +158,8 @@ vmap = fmap . fmap
 
 -- elem
 member :: Eq a => a -> List a -> V Bool
-member _ Empty                   = plain False
-member x (Cons y ys) | x==y      = plain True
+member _ Empty                   = list False
+member x (Cons y ys) | x==y      = list True
                     | otherwise = member x ys
 member x (VList vl)              = vl >>= member x
 
@@ -191,7 +184,7 @@ cat (Cons a l) r = Cons a (l `cat` r)
 cat (VList vl) r = VList (fmap (`cat` r) vl)
 
 vcat :: VList a -> VList a -> VList a
-vcat l r = plain $ cat (VList l) (VList r)
+vcat l r = list $ cat (VList l) (VList r)
 
 -- vapp :: List a -> List a -> List a
 -- vapp = cat
@@ -219,7 +212,7 @@ zipL (VList vl)  ys          = VList (fmap (`zipL` ys) vl)
 zipL xs          (VList vl') = VList (fmap (xs `zipL`) vl')
 
 vzip :: VList a -> VList b -> VList (a,b)
-vzip vl vl' = plain $ zipL (VList vl) (VList vl')
+vzip vl vl' = list $ zipL (VList vl) (VList vl')
 
 
 
