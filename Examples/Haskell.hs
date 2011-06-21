@@ -95,11 +95,12 @@ twice'' = (varyImpl . varyPar . haskell) xp
 instance Show Exp where
   show e = showTop e
 
-showDef n as b = n ++ " " ++ args as ++ " = " ++ showExp b ++ "\n"
+showDef n as b = n ++ " " ++ args as ++ " = " ++ showExp b
   where args = concat . intersperse " " . map showTerm
 
-showTop (Let n as b c) = showDef n as b ++ showTop c
-showTop e              = showExp e
+showTop (Let n as b (Ref "")) = showDef n as b
+showTop (Let n as b c)        = showDef n as b ++ "\n" ++ showTop c
+showTop e                     = showExp e
 
 showExp (App (App (Ref o) l) r) | isOp o = showExp  l ++ getOp o ++ showTerm r
 showExp (App l@(App _ _) r) = showExp  l ++ " " ++ showTerm r
