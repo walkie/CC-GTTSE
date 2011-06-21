@@ -3,7 +3,7 @@
 module CC.Zipper where
 
 import Control.Monad ((>=>))
-import Data.Maybe    (fromJust, isNothing)
+import Data.Maybe    (isNothing)
 
 import Data.Generics
 import Data.Generics.Zipper -- requires, from Hackage: syz
@@ -98,12 +98,13 @@ transAll f t z | f z       = continue (t z)
 
 -- Cleanup a plain object.
 clean :: Data a => a -> a
-clean a = (unObj . fromZipper . downT cln . toZipper . Obj) a
-  where cln z | atObj z   = maybe z cln
-                          $ do Obj b <- getHole z
-                               up z >>= return . setHole (b `asTypeOf` a)
-              | otherwise = maybe (maybe z cln (right z)) cln (down' z)
+clean a = (unObj . fromZipper . cln . toZipper . Obj) a
+  where cln z | downQ False atObj z = maybe err cln
+                                    $ do Obj b <- (down z >>= getHole)
+                                         return (setHole (b `asTypeOf` a) z)
+              | otherwise = leftT cln (downT cln z)
         unObj (Obj a) = a
+        err = error "clean: either expression is not plain or data type is malformed"
 
 -- Create a new dimension at the current location.
 newDim :: Typeable a => Dim -> [Tag] -> Trans a
