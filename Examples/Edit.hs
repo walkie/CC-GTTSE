@@ -11,7 +11,7 @@ import CC.Syntax
 import CC.Static
 import CC.Zipper
 
---import CC.Semantics
+import CC.Semantics
 import Examples.List
 import Examples.Names
 
@@ -32,6 +32,7 @@ t <: v = (t,v)
 
 alt :: Dim -> [Tagged a] -> V a
 alt n tvs = aDim n ts vs where (ts,vs) = unzip tvs
+
 
 
 -----------------
@@ -64,6 +65,7 @@ withFallback :: a -> Maybe a -> a
 withFallback = fromMaybe
 
 
+
 find ::  Data a => (V a -> Bool) -> Locator a
 find p = match p . toZipper
 
@@ -78,6 +80,10 @@ extract p e = do
 apply :: Data a => C a -> V a -> V a
 apply c h = fromZipper (setHole h c)
 
+infixr <@
+(<@) :: Data a => C a -> V a -> V a
+(<@) = apply
+
 
 -- extractDim :: Data a => Dim -> VSplitter a
 -- extractDim d = extract (dimDef d)
@@ -86,9 +92,9 @@ dimDef :: Dim -> V a -> Bool
 dimDef d (Dim d' _ _) = d == d'
 dimDef _ _            = False
 
-chcIn :: Dim -> V a -> Bool
-chcIn d (Chc d' _)  = d == d'
-chcIn _ _           = False
+chcFor :: Dim -> V a -> Bool
+chcFor d (Chc d' _)  = d == d'
+chcFor _ _           = False
 
 
 -- hoist :: Data a => Dim -> V a -> Maybe (V a)
@@ -96,7 +102,7 @@ chcIn _ _           = False
 hoist :: Data a => Dim -> V a -> V a
 hoist d e = withFallback e $ do
     (c,Dim _ ts e') <- extract (dimDef d) e
-    return (Dim d ts (apply c e'))
+    return (Dim d ts (c <@ e'))
 
 -- safeHoist :: Data a => Dim -> V a -> Maybe (V a)
 -- safeHoist d e = do
@@ -106,25 +112,31 @@ safeHoist d e = withFallback e $ do
     if d `Set.member` freeDims e then
        Nothing
     else
-       return (Dim d ts (apply c e'))
+       return (Dim d ts (c <@ e'))
 
--- swapOpt :: Data a => Dim -> Dim -> Int -> V a -> V a
--- swapOpt o a k e = withFallback e $ do
---     (cDa,eDa)         <- extract (dimDef d) e
---     (cCa,Chc _ eas)   <- extract (chcIn a) eDa
---     (cCo,Chc _ [y,_]) <- extract (chcIn o) (eas !! (k-1))
---     return $ apply cDa (Chc o [apply cCo y,apply cCa])
---     
---     apply c' (apply c vempty))
--- 
--- {-
--- 
--- cDa[ cCa[ cCo[y,_]  ] ] 
--- -->
--- cDa[ O[ cCo[y], cCa[] ] ] 
--- 
--- -}
+-- assumes priorized choice sits in 2nd alternative
+prioritize :: Data a => Dim -> Dim -> V a -> V a
+prioritize b a e = withFallback e $ do
+    (dA,ae)            <- extract (dimDef a) e
+    (cA,Chc _ [a1,a2]) <- extract (chcFor a) ae
+    (cB,Chc _ [b1,b2]) <- extract (chcFor b) a2
+    return $ dA <@ (Chc b [cB <@ b1,cA <@ (Chc a [a1,cB <@ b2])])
 
+{-
+
+e = dA < ...
+a2 = cB < ...
+
+dA < cA < A[a1,a2 : cB < B[b1,b2]] 
+
+-->
+
+dA < B[cB < b1, cA < A[a1,cB < b2]]
+
+-}
+
+invert :: Data a => Dim -> Dim -> V a -> V a
+invert b a = prioritize b a . hoist b
 
 -- Hoist a dimension to the top level of an expression, indicating whether
 -- or not choices were captured.
@@ -160,16 +172,22 @@ menu'    = alt "Main" [meat,pasta]
 
 
 
-dimO = Dim "O" ["yes","no"]
-chcO y = chc "O" [vsingle y,vempty]
+bs = [vsingle "b1",vsingle "b2"]
+
+ba :: VList String
+ba = dimB $ dimA $ chcA [vsingle "a1","a2" `cons` chcB bs]
+
+b_a :: VList String
+b_a = dimB $ chcB [vlist ["a2","b1"], dimA $ chcA [vsingle "a1",vlist ["a2","b2"]]]
+
+b_a' = prioritize "B" "A" ba
+test = b_a' == b_a
+
+a_b :: VList String
+a_b = dimA $ chcA [vsingle "a1", "a2" `cons` dimchcB bs]
 
 
+dMenu = hoist "Dessert" menu
 
-a_o :: VList String
-a_o = dimA $ chcA [vsingle "a", "b" `cons` dimO (chcO "y")]
+dMenu' = prioritize "Dessert" "Main" dMenu
 
-oa :: VList String
-oa = dimO $ dimA $ chcA [vsingle "a","b" `cons` chcO "y"]
-
-o_a :: VList String
-o_a = dimO $ chc "O" [vlist ["b","y"], dimA $ chcA [vsingle "a",vsingle "b"]]

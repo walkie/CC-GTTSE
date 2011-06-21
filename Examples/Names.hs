@@ -7,9 +7,9 @@ import CC.Syntax
 
 
 -- some simple binary dimensions
-dimA = Dim "A" ["a","b"]
-dimB = Dim "B" ["c","d"]
-dimC = Dim "C" ["e","f"]
+dimA = Dim "A" ["a","a'"]
+dimB = Dim "B" ["b","b'"]
+dimC = Dim "C" ["c","c'"]
 
 -- some binary choices
 chcA = chc "A"
@@ -21,3 +21,7 @@ chc'A = chc' "A"
 chc'B = chc' "B"
 chc'C = chc' "C"
 
+-- encapsulated choices
+dimchcA = dimA .chcA
+dimchcB = dimB .chcB
+dimchcC = dimC .chcC
