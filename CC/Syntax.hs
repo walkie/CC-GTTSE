@@ -133,9 +133,9 @@ instance Functor V where
   
 instance Monad V where
   return = Obj
-  Obj a     >>= f = f a
-  Dim d t e >>= f = Dim d t (e >>= f)
-  Chc d es  >>= f = Chc d (map (>>= f) es)
+  Obj a      >>= f = f a
+  Dim d ts e >>= f = Dim d ts (e >>= f)
+  Chc d es   >>= f = Chc d (map (>>= f) es)
 
 instance Applicative V where
   pure  = return
@@ -147,11 +147,11 @@ instance Foldable V where
   foldMap f (Chc _ es)  = mconcat (map (foldMap f) es)
   
 instance Traversable V where
-  traverse f (Obj a)     = Obj     <$> f a
-  traverse f (Dim d t e) = Dim d t <$> traverse f e
-  traverse f (Chc d es)  = Chc d   <$> sequenceA (map (traverse f) es)
+  traverse f (Obj a)      = Obj      <$> f a
+  traverse f (Dim d ts e) = Dim d ts <$> traverse f e
+  traverse f (Chc d es)   = Chc d    <$> sequenceA (map (traverse f) es)
 
 instance Show a => Show (V a) where
-  show (Obj a)     = show a
-  show (Dim d t e) = showDim d t (show e)
-  show (Chc d es)  = showChc d (map show es)
+  show (Obj a)      = show a
+  show (Dim d ts e) = showDim d ts (show e)
+  show (Chc d es)   = showChc d (map show es)
