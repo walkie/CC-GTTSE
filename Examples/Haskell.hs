@@ -88,28 +88,44 @@ twice = Dim "Par" ["x","y"] $
         let v = choice "Par" [x,y] in 
         fun "twice" [v] (choice "Impl" [v .+ v, Val 2 .* v])
 
+-- twice variants
+
+xp, yp, xt, yt :: VHaskell
+xp = fun "twice" [x] (x .+ x)
+yp = fun "twice" [y] (y .* y)
+xt = fun "twice" [x] (Val 2 .* x)
+yt = fun "twice" [y] (Val 2 .* y)
 
 -- deriving with SYB...
 
-xp = def "twice" ["x"] (op "+" (Var "x") (Var "x")) end
-yp = def "twice" ["y"] (op "+" (Var "y") (Var "y")) end
-xt = def "twice" ["x"] (op "*" (Val 2) (Var "x")) end
-yt = def "twice" ["y"] (op "*" (Val 2) (Var "y")) end
-
-varyPar :: V Haskell -> V Haskell
+varyPar :: VHaskell -> VHaskell
 varyPar = Dim "Par" ["x","y"] . everywhere (mkT par)
-  where par (Var "x") = VHaskell $ chc' "Par" [Var "x", Var "y"]
+  where par (Var "x") = choice "Par" [x,y]
         par e = e
 
-varyImpl :: V Haskell -> V Haskell
+varyImpl :: VHaskell -> VHaskell
 varyImpl = Dim "Impl" ["plus","times"] . everywhere (mkT impl)
-  where impl e@(App (App (Var "(+)") l) r) | l == r = 
-          VHaskell $ chc' "Impl" [e, op "*" (Val 2) r]
+  where impl e@(App (App (Var "(+)") l) r) | l == r = choice "Impl" [e, Val 2 .* r]
         impl e = e
 
-twice'  = (varyPar . varyImpl . haskell) xp
-twice'' = (varyImpl . varyPar . haskell) xp
+twice'  = (varyPar . varyImpl) xp
+twice'' = (varyImpl . varyPar) xp
 
+
+--
+-- extending Par with another options
+--
+
+twiceZ :: VHaskell
+twiceZ = extend "Par" "z" (addAlt (haskell z)) twice
+
+stopTest = extend "Par" "z" (addAlt (haskell z)) twice'
+  where dimPar = Dim "Par" ["x","y"]
+        twice' = dimPar $
+                 Dim "Impl" ["plus","times"] $
+                 let v = choice "Par" [x,y] in 
+                 let v' = VHaskell $ dimPar (haskell v) in
+                 fun "twice" [v] (choice "Impl" [v .+ v', Val 2 .* v])
 
 ---------------------
 -- Pretty Printing --
@@ -133,10 +149,10 @@ showHaskell (App (App (Var o) l) r) | isOp o = showHaskell  l ++ getOp o ++ show
 showHaskell (App l@(App _ _) r) = showHaskell  l ++ " " ++ showTerm r
 showHaskell (App l r)           = showTerm l ++ " " ++ showTerm r
 showHaskell (Let n as b c)      = "let " ++ showDef n as b ++ "in " ++ showHaskell c
-showHaskell (VHaskell v)            = show v
+showHaskell (VHaskell v)        = show v
 showHaskell t                   = showTerm t
 
 showTerm (Var v) = v
 showTerm (Val i) = show i
 showTerm e@(VHaskell (Chc _ _)) = showHaskell e
-showTerm e       = "(" ++ showHaskell e ++ ")"
+showTerm e = "(" ++ showHaskell e ++ ")"

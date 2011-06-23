@@ -91,10 +91,10 @@ ccTrans :: Typeable a => (V a -> V a) -> Trans a
 ccTrans f = trans (mkT f)
 
 -- Apply a transformation to all matching nodes using a pre-order traversal.
-transAll :: Typeable a => (Z a -> Bool) -> (Z a -> Z a) -> Z a -> Z a
-transAll f t z | f z       = continue (t z)
+transAll :: Typeable a => (V a -> Bool) -> (Z a -> Z a) -> Trans a
+transAll f t z | atX f z   = continue (t z)
                | otherwise = continue z
-  where continue = rightT (transAll f t) . downT (transAll f t)
+  where continue = leftT (transAll f t) . downT (transAll f t)
 
 -- Cleanup a plain object.
 clean :: Data a => a -> a

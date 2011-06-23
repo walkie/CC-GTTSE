@@ -2,7 +2,7 @@
 module Examples.Edit where
 
 import Control.Monad ((>=>),msum)
-import Data.Generics (Data,mkQ)
+import Data.Generics (Data,mkQ,mkT)
 import Data.Generics.Zipper -- requires, from Hackage: syz
 import Data.Maybe (fromJust,fromMaybe)
 import qualified Data.Set as Set (member)
@@ -32,7 +32,8 @@ type Splitter a = V a -> Maybe (C a,V a)
 withFallback :: a -> Maybe a -> a
 withFallback = fromMaybe
 
-
+runEdit :: Data a => (C a -> C a) -> V a -> V a
+runEdit f = fromZipper . f . toZipper
 
 find ::  Data a => (V a -> Bool) -> Locator a
 find p = match p . toZipper
@@ -89,6 +90,30 @@ prioritize b a e = withFallback e $ do
     (cA,Chc _ [a1,a2]) <- extract (chcFor a) ae
     (cB,Chc _ [b1,b2]) <- extract (chcFor b) a2
     return $ dA <@ (Chc b [cB <@ b1,cA <@ (Chc a [a1,cB <@ b2])])
+
+-- Apply a transformation to all matching nodes
+-- stopping recursion on the end condition.
+editUntil :: Data a => (V a -> Bool) -> (V a -> Bool) -> (V a -> V a) -> C a -> C a
+editUntil m e t c | atX m c = continue (trans (mkT t) c)
+                  | atX e c = leftT (editUntil m e t) c
+                  | otherwise = continue c
+  where continue = leftT (editUntil m e t) . downT (editUntil m e t)
+
+-- given an n-ary choice, produce an (n+1)-ary choice where the ith alternative
+-- has been copied and appended to the end. i is indexed from 1.
+copyAlt :: Int -> V a -> V a
+copyAlt i (Chc d as) = Chc d (as ++ [as !! (i-1)])
+
+-- add a new alternative to the end of a choice
+addAlt :: V a -> V a -> V a
+addAlt a (Chc d as) = Chc d (as ++ [a])
+
+-- extend a dimension with a new tag, transforming all bound choices
+extend :: Data a => Dim -> Tag -> (V a -> V a) -> V a -> V a
+extend d t f e = withFallback e $ do
+    (c, Dim _ ts e) <- extract (dimDef d) e
+    let e' = runEdit (editUntil (chcFor d) (dimDef d) f) e
+    return (c <@ Dim d (ts++[t]) e')
 
 {-
 
