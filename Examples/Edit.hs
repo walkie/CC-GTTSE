@@ -161,7 +161,7 @@ getTags d e = msum (ccQ (getTags d) e)
 
 menuD :: VList Food
 menuD = chc "Dessert" [vsingle Cake,
-            aDim "Main" ["meat","pasta"] 
+            atomic "Main" ["meat","pasta"] 
              [vlist [Steak,Fries],Pasta `cons` dessert]]
 
 

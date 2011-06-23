@@ -43,6 +43,8 @@ toList = foldr Cons Empty
 many = toList
 
 list = Obj
+int = Obj
+
 
 -- from a *plain* List value to a Haskell list
 fromList :: List a -> [a]
@@ -84,6 +86,10 @@ isPlain (Cons _ l)      = isPlain l
 isPlain (VList (Obj l)) = isPlain l
 isPlain _               = False
 
+-- optional dimension
+opt :: Dim -> a -> VList a
+opt d x = atomic d ["yes","no"] [vsingle x,vempty]
+
 
 --
 -- variational list functions
@@ -91,7 +97,7 @@ isPlain _               = False
 
 -- foldr
 fold :: (a -> b -> b) -> b -> List a -> V b
-fold _ b Empty      = Obj b
+fold _ b Empty      = obj b
 fold f b (Cons a l) = fmap (f a) (fold f b l)
 fold f b (VList vl) = vl >>= fold f b
 -- fold f b (VList vl) = liftV (fold f b) vl
@@ -101,8 +107,6 @@ fold f b (VList vl) = vl >>= fold f b
 len :: List a -> V Int
 len = fold (\_ s->succ s) 0
 {-
-
-int = Obj
 
 len :: List a -> V Int
 len Empty       = int 0
@@ -129,7 +133,7 @@ vsum = liftV sumL
 -- nth
 nth :: Int -> List a -> V a
 nth _ Empty       = undefined
-nth 1 (Cons x _)  = Obj x
+nth 1 (Cons x _)  = obj x
 nth n (Cons _ xs) = nth (n-1) xs
 nth n (VList vl)  = vl >>= nth n
 
@@ -255,9 +259,9 @@ data Food = Steak | Pasta | Beer | Fries | Cake
 -- 
 -- main   = cMain [Steak,Pasta]
 -- drink  = cMain [Beer,Wine]
--- dessert = aDim' "Dessert" ["c","f"] [Cake,Fruit]
+-- dessert = atomic "Dessert" ["c","f"] [Cake,Fruit]
 -- 
--- special = aDim "Drink" [y,n] [cMain [Beer,Wine],dessert] `vcons` vempty
+-- special = atomic "Drink" [y,n] [cMain [Beer,Wine],dessert] `vcons` vempty
 -- 
 -- menu = Dim "Main" ["m","p"] $ main `vcons` special
 
@@ -269,7 +273,7 @@ data Food = Steak | Pasta | Beer | Fries | Cake
 -- Too many length variation, no nested dimension
 --
 -- main = chc "Main" $ map vList [[Steak,Fries],[Pasta]]
--- dessert = aDim "Dessert" [y,n] [vsingle Cake,vempty]
+-- dessert = atomic "Dessert" [y,n] [vsingle Cake,vempty]
 -- dessert' = chc "Dessert" [vsingle Cake,vempty]
 -- 
 -- menu = Dim "Main" ["m","p"] $ main `vcat` dessert
@@ -280,17 +284,17 @@ data Food = Steak | Pasta | Beer | Fries | Cake
 -- 
 
 dessert :: VList Food
-dessert = aDim "Dessert" [y,n] [vsingle Cake,vempty]
+dessert = atomic "Dessert" [y,n] [vsingle Cake,vempty]
 
 menu :: VList Food
-menu = aDim "Main" ["meat","pasta"] 
-             [vlist [Steak,Fries],Pasta `cons` dessert]
+menu = atomic "Main" ["meat","pasta"] 
+              [vlist [Steak,Fries],Pasta `cons` dessert]
 
 -- data Drink = Martini | Sherry
 --              deriving (Eq,Show,Data,Typeable)
 
 aperitif :: VList Food
-aperitif = aDim "Drink" [y,n] [vsingle Sherry,vempty]
+aperitif = opt "Drink" Sherry
 
 
 ---------------

@@ -41,19 +41,31 @@ names :: Name -> Int -> [Name]
 names x n = [x ++ show i | i <- [1..n]]
 
 -- construct a dimension with arbitrary tag names
--- 
 dimN :: Dim -> Int -> V a -> V a
 dimN d n = Dim d (names "" n)
 
+-- function names for choice and object constructors
 chc = Chc
+obj = Obj
 
 chc' :: Dim -> [a] -> V a
 chc' d = Chc d . map Obj
 
 -- atomic dimension/choice
-aDim  d ts cs = Dim d ts $ chc d cs
-aDim' d ts cs = Dim d ts $ chc' d cs
+atomic  d ts cs = Dim d ts $ chc d cs
+atomic' d ts cs = Dim d ts $ chc' d cs
 
+-- tagging variational data
+type Tagged a = (Tag,V a)
+
+infixl 2 <:
+
+(<:) :: Tag -> V a -> Tagged a
+t <: v = (t,v)
+
+-- constructing alternatives from tagged data
+alt :: Dim -> [Tagged a] -> V a
+alt d tvs = atomic d ts vs where (ts,vs) = unzip tvs
 
 -- lifting a function's argument type to V
 liftV :: (a -> V b) -> V a -> V b
