@@ -16,49 +16,17 @@ import Examples.List
 import Examples.Names
 
 
---------------
--- Building --
---------------
-
-opt :: Dim -> a -> VList a
-opt n x = aDim n ["yes","no"] [vsingle x,vempty]
-
-type Tagged a = (Tag,V a)
-
-infixl 2 <:
-
-(<:) :: Tag -> V a -> Tagged a
-t <: v = (t,v)
-
-alt :: Dim -> [Tagged a] -> V a
-alt n tvs = aDim n ts vs where (ts,vs) = unzip tvs
-
-
-
 -----------------
 -- Refactoring --
 -----------------
 
--- helper function
-matchQueryEdit :: Data a =>
-                  (V a -> Bool)  -- predicate to match on
-               -> (V a -> r)     -- query to perform on matched value
-               -> (V a -> V a)   -- transformation to apply to matched value
-               -> V a            -- initial expression
-               -> Maybe (r, V a) -- result of query and modified expression
-matchQueryEdit p q t e = do 
-    z <- match p (toZipper e)
-    m <- getHole z
-    return (q m, fromZipper (setHole (t m) z))
-
-
 type C a = Z a
 
 type Locator a = V a -> Maybe (C a)
-type GSplitter a b = V a -> Maybe (C a,b)
--- type VSplitter a = Splitter a (V a)
 type Splitter a = V a -> Maybe (C a,V a)
-type Splitters a = V a -> Maybe (C a,[V a])
+-- type GSplitter a b = V a -> Maybe (C a,b)
+-- type VSplitter a = Splitter a (V a)
+-- type Splitters a = V a -> Maybe (C a,[V a])
 
 
 withFallback :: a -> Maybe a -> a

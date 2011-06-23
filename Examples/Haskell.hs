@@ -11,19 +11,21 @@ import CC.Static
 import CC.Zipper
 import Examples.Edit
 
-type Def = Exp -> Exp
+type Def = Haskell -> Haskell
 
-data Exp = App Exp Exp
-         | Ref Name
+type VHaskell = V Haskell
+
+data Haskell = App Haskell Haskell
+         | Var Name
          | Val Int
-         | Let Name [Exp] Exp Exp
+         | Let Name [Haskell] Haskell Haskell
       -- | ...
-         | VExp (V Exp)
+         | VHaskell VHaskell
   deriving (Eq,Data,Typeable)
 
 infixl 1 `App`
 
-haskell :: Exp -> V Exp
+haskell :: Haskell -> V Haskell
 haskell = Obj
 
 
@@ -31,8 +33,8 @@ haskell = Obj
 -- Syntactic sugar for binary operations.
 -- 
 
-op :: Name -> Exp -> Exp -> Exp
-op o l r = Ref ("(" ++ o ++ ")") `App` l `App` r
+op :: Name -> Haskell -> Haskell -> Haskell
+op o l r = Var ("(" ++ o ++ ")") `App` l `App` r
 
 isOp :: Name -> Bool
 isOp n = head n == '(' && last n == ')'
@@ -45,39 +47,64 @@ getOp ('(':o) = take (length o-1) o
 -- Syntactic sugar for top-level definitions.
 --
 
-def :: Name -> [Name] -> Exp -> Def
-def n as b = Let n (map Ref as) b
+def :: Name -> [Name] -> Haskell -> Def
+def n as b = Let n (map Var as) b
 
-end :: Exp
-end = Ref ""
+end :: Haskell
+end = Var ""
 
+
+-- 
+-- Other syntactic sugar
+--
+
+(.+) = op "+"
+(.*) = op "*"
+
+[x,y,z] = map Var ["x","y","z"]
+
+choice d = VHaskell . chc' d 
+
+fun n vs e = haskell $ Let n vs e end
 
 --
 -- Twice example.
 --
 
-twice = Dim "Par" ["x","y"]
-      $ Dim "Impl" ["plus","times"]
-      $ haskell $ Let "twice" [v] i end
-  where v = VExp $ chc' "Par" [Ref "x", Ref "y"]
-        i = VExp $ chc' "Impl" [op "+" v v, op "*" (Val 2) v]
+-- twice = Dim "Par" ["x","y"]
+--       $ Dim "Impl" ["plus","times"]
+--       $ haskell $ Let "twice" [v] i end
+--   where v = VHaskell $ chc' "Par" [Var "x", Var "y"]
+--         i = VHaskell $ chc' "Impl" [op "+" v v, op "*" (Val 2) v]
+-- 
+-- twice = Dim "Par" ["x","y"]
+--       $ Dim "Impl" ["plus","times"]
+--       $ fun "twice" [v] i
+--       where v = choice "Par" [x,y]
+--             i = choice "Impl" [v .+ v, Val 2 .* v]
+
+twice = Dim "Par" ["x","y"] $
+        Dim "Impl" ["plus","times"] $
+        let v = choice "Par" [x,y] in 
+        fun "twice" [v] (choice "Impl" [v .+ v, Val 2 .* v])
+
 
 -- deriving with SYB...
 
-xp = def "twice" ["x"] (op "+" (Ref "x") (Ref "x")) end
-yp = def "twice" ["y"] (op "+" (Ref "y") (Ref "y")) end
-xt = def "twice" ["x"] (op "*" (Val 2) (Ref "x")) end
-yt = def "twice" ["y"] (op "*" (Val 2) (Ref "y")) end
+xp = def "twice" ["x"] (op "+" (Var "x") (Var "x")) end
+yp = def "twice" ["y"] (op "+" (Var "y") (Var "y")) end
+xt = def "twice" ["x"] (op "*" (Val 2) (Var "x")) end
+yt = def "twice" ["y"] (op "*" (Val 2) (Var "y")) end
 
-varyPar :: V Exp -> V Exp
+varyPar :: V Haskell -> V Haskell
 varyPar = Dim "Par" ["x","y"] . everywhere (mkT par)
-  where par (Ref "x") = VExp $ chc' "Par" [Ref "x", Ref "y"]
+  where par (Var "x") = VHaskell $ chc' "Par" [Var "x", Var "y"]
         par e = e
 
-varyImpl :: V Exp -> V Exp
+varyImpl :: V Haskell -> V Haskell
 varyImpl = Dim "Impl" ["plus","times"] . everywhere (mkT impl)
-  where impl e@(App (App (Ref "(+)") l) r) | l == r = 
-          VExp $ chc' "Impl" [e, op "*" (Val 2) r]
+  where impl e@(App (App (Var "(+)") l) r) | l == r = 
+          VHaskell $ chc' "Impl" [e, op "*" (Val 2) r]
         impl e = e
 
 twice'  = (varyPar . varyImpl . haskell) xp
@@ -92,24 +119,24 @@ twice'' = (varyImpl . varyPar . haskell) xp
 -- will be rendered as top-level expressions even if they should not be.
 -- Good enough for now though.
 
-instance Show Exp where
+instance Show Haskell where
   show e = showTop e
 
-showDef n as b = n ++ " " ++ args as ++ " = " ++ showExp b
+showDef n as b = n ++ " " ++ args as ++ " = " ++ showHaskell b
   where args = concat . intersperse " " . map showTerm
 
-showTop (Let n as b (Ref "")) = showDef n as b
+showTop (Let n as b (Var "")) = showDef n as b
 showTop (Let n as b c)        = showDef n as b ++ "\n" ++ showTop c
-showTop e                     = showExp e
+showTop e                     = showHaskell e
 
-showExp (App (App (Ref o) l) r) | isOp o = showExp  l ++ getOp o ++ showTerm r
-showExp (App l@(App _ _) r) = showExp  l ++ " " ++ showTerm r
-showExp (App l r)           = showTerm l ++ " " ++ showTerm r
-showExp (Let n as b c)      = "let " ++ showDef n as b ++ "in " ++ showExp c
-showExp (VExp v)            = show v
-showExp t                   = showTerm t
+showHaskell (App (App (Var o) l) r) | isOp o = showHaskell  l ++ getOp o ++ showTerm r
+showHaskell (App l@(App _ _) r) = showHaskell  l ++ " " ++ showTerm r
+showHaskell (App l r)           = showTerm l ++ " " ++ showTerm r
+showHaskell (Let n as b c)      = "let " ++ showDef n as b ++ "in " ++ showHaskell c
+showHaskell (VHaskell v)            = show v
+showHaskell t                   = showTerm t
 
-showTerm (Ref v) = v
+showTerm (Var v) = v
 showTerm (Val i) = show i
-showTerm e@(VExp (Chc _ _)) = showExp e
-showTerm e       = "(" ++ showExp e ++ ")"
+showTerm e@(VHaskell (Chc _ _)) = showHaskell e
+showTerm e       = "(" ++ showHaskell e ++ ")"
