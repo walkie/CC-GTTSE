@@ -9,6 +9,7 @@ import Data.Generics
 import CC.Syntax
 import CC.Semantics
 import CC.Pretty
+import CC.Zipper
 
 
 -----------------------
@@ -44,7 +45,7 @@ toST = other `extQ` leaf
 
 -- Pull original data type out of a *plain* choice calculus expression.
 fromST :: Data a => Tree String -> Maybe a
-fromST = (other `extR` string) . cleanup
+fromST = (other `extR` string) . clean
   where string (Node s []) = Just s
         other  (Node s es) = result
           where unM = undefined :: m a -> a -- only used for type
