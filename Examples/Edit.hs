@@ -27,6 +27,8 @@ type Splitter a = V a -> Maybe (C a,V a)
 -- type GSplitter a b = V a -> Maybe (C a,b)
 -- type VSplitter a = Splitter a (V a)
 -- type Splitters a = V a -> Maybe (C a,[V a])
+type Trans a = V a -> V a
+type Pred a = V a -> Bool
 
 
 withFallback :: a -> Maybe a -> a
@@ -35,11 +37,12 @@ withFallback = fromMaybe
 runEdit :: Data a => (C a -> C a) -> V a -> V a
 runEdit f = fromZipper . f . toZipper
 
-find ::  Data a => (V a -> Bool) -> Locator a
+find ::  Data a => Pred a -> Locator a
+-- find ::  Data a => (V a -> Bool) -> Locator a
 find p = match p . toZipper
 
 -- extract :: Data a => (V a -> Bool) -> Splitter a (V a)
-extract :: Data a => (V a -> Bool) -> Splitter a
+extract :: Data a => Pred a -> Splitter a
 -- extract :: (Data a,Data b) => (V a -> Bool) -> GSplitter a b
 extract p e = do
     c <- find p e
@@ -57,11 +60,11 @@ infixr <@
 -- extractDim :: Data a => Dim -> VSplitter a
 -- extractDim d = extract (dimDef d)
 
-dimDef :: Dim -> V a -> Bool
+dimDef :: Dim -> Pred a
 dimDef d (Dim d' _ _) = d == d'
 dimDef _ _            = False
 
-chcFor :: Dim -> V a -> Bool
+chcFor :: Dim -> Pred a
 chcFor d (Chc d' _)  = d == d'
 chcFor _ _           = False
 
@@ -93,11 +96,16 @@ prioritize b a e = withFallback e $ do
 
 -- Apply a transformation to all matching nodes
 -- stopping recursion on the end condition.
-editUntil :: Data a => (V a -> Bool) -> (V a -> Bool) -> (V a -> V a) -> C a -> C a
-editUntil m e t c | atX m c = continue (trans (mkT t) c)
-                  | atX e c = leftT (editUntil m e t) c
-                  | otherwise = continue c
-  where continue = leftT (editUntil m e t) . downT (editUntil m e t)
+editBetween :: Data a => (V a -> Bool) -> (V a -> Bool) -> (V a -> V a) -> C a -> C a
+editBetween b e t c | atX b c = continue (trans (mkT t) c)
+                    | atX e c = leftT edit c
+                    | otherwise = continue c
+  where continue = leftT edit . downT edit
+        edit = editBetween b e t
+
+-- inRange :: Data a => (V a -> V a) -> (V a -> Bool,V a -> Bool) -> V a -> V a
+inRange :: Data a => (V a -> V a) -> (Pred a,Pred a) -> V a -> V a
+inRange f (begin,end) e = runEdit (editBetween begin end f) e
 
 -- given an n-ary choice, produce an (n+1)-ary choice where the ith alternative
 -- has been copied and appended to the end. i is indexed from 1.
@@ -112,8 +120,17 @@ addAlt a (Chc d as) = Chc d (as ++ [a])
 extend :: Data a => Dim -> Tag -> (V a -> V a) -> V a -> V a
 extend d t f e = withFallback e $ do
     (c, Dim _ ts e) <- extract (dimDef d) e
-    let e' = runEdit (editUntil (chcFor d) (dimDef d) f) e
+    let e' = runEdit (editBetween (chcFor d) (dimDef d) f) e
     return (c <@ Dim d (ts++[t]) e')
+
+
+extend' :: Data a => Dim -> Tag -> (V a -> V a) -> V a -> V a
+extend' d t f e = withFallback e $ do
+    (c, Dim _ ts e) <- extract (dimDef d) e
+    let e' = f `inRange` (chcFor d,dimDef d) $ e
+    return (c <@ Dim d (ts++[t]) e')
+
+
 
 {-
 

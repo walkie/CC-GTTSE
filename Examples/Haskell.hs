@@ -97,16 +97,26 @@ xt = fun "twice" [x] (Val 2 .* x)
 yt = fun "twice" [y] (Val 2 .* y)
 
 -- deriving with SYB...
+-- addChoice :: Haskell -> Haskell
+-- addChoice (Var "x") = choice "Par" [x,y]
+-- addChoice e = e
+-- 
+-- varyPar :: VHaskell -> VHaskell
+-- varyPar = Dim "Par" ["x","y"] . everywhere (mkT addChoice)
+
+addPar :: Haskell -> Haskell
+addPar (Var "x") = choice "Par" [x,y]
+addPar e = e
 
 varyPar :: VHaskell -> VHaskell
-varyPar = Dim "Par" ["x","y"] . everywhere (mkT par)
-  where par (Var "x") = choice "Par" [x,y]
-        par e = e
+varyPar = Dim "Par" ["x","y"] . everywhere (mkT addPar)
+
+addImpl e@(App (App (Var "(+)") l) r) | l == r = choice "Impl" [e, Val 2 .* r]
+addImpl e = e
 
 varyImpl :: VHaskell -> VHaskell
-varyImpl = Dim "Impl" ["plus","times"] . everywhere (mkT impl)
-  where impl e@(App (App (Var "(+)") l) r) | l == r = choice "Impl" [e, Val 2 .* r]
-        impl e = e
+varyImpl = Dim "Impl" ["plus","times"] . everywhere (mkT addImpl)
+
 
 twice'  = (varyPar . varyImpl) xp
 twice'' = (varyImpl . varyPar) xp
@@ -118,6 +128,9 @@ twice'' = (varyImpl . varyPar) xp
 
 twiceZ :: VHaskell
 twiceZ = extend "Par" "z" (addAlt (haskell z)) twice
+
+twiceZ' :: VHaskell
+twiceZ' = extend' "Par" "z" (addAlt (haskell z)) twice
 
 stopTest = extend "Par" "z" (addAlt (haskell z)) twice'
   where dimPar = Dim "Par" ["x","y"]
