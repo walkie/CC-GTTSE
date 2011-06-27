@@ -334,7 +334,7 @@ instance Show a => Show (List a) where
   show Empty      = "[]"
   show vl         = '[':show' vl++"]"
 
-show' Empty           = "[]"
+show' Empty           = ""
 show' (Cons x Empty)  = show x
 show' (Cons x vl)     = show x++';':show' vl
 show' (VList (Obj l)) = show' l
