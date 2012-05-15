@@ -36,9 +36,9 @@ test_sem = testSames "sem" sem
 
 -- tag shortcuts
 a = Q "A" "a"
-b = Q "A" "b"
-c = Q "B" "c"
-d = Q "B" "d"
+b = Q "A" "a'"
+c = Q "B" "b"
+d = Q "B" "b'"
 
 da = dimA $ Chc "A" [Obj 1, Obj 2] :: V Int
 db = dimB $ Chc "B" [da, Obj 3]
