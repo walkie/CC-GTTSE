@@ -24,9 +24,6 @@ type C a = Z a
 
 type Locator a = V a -> Maybe (C a)
 type Splitter a = V a -> Maybe (C a,V a)
--- type GSplitter a b = V a -> Maybe (C a,b)
--- type VSplitter a = Splitter a (V a)
--- type Splitters a = V a -> Maybe (C a,[V a])
 type Trans a = V a -> V a
 type Pred a = V a -> Bool
 
@@ -151,33 +148,6 @@ swapOptions d e = withFallback e $ do
     let e' = swapAlts `inRange` (chcFor d,dimDef d) $ e
     return (c <@ Dim d [u,t] e')
 
-{-
-swapAlts :: Int -> Int -> V a -> V a
-swapAlts i j (Chc d as) = Chc d (take (i'-1) as ++ [as !! i'] 
-  where i' = min i j
-        j' = max i j
-
-swapOptions :: Data a => Dim -> (Tag,Tag) -> V a -> V a
-swapOptions d (t,u) e = withFallback e $ do
-    (c, Dim _ ts e) <- extract (dimDef d) e
-    i <- elemIndex t ts
-    j <- elemIndex u ts
-    let e' = swapAlts i j `inRange
--}
-
-
-{-
-
-e = dA < ...
-a2 = cB < ...
-
-dA < cA < A[a1,a2 : cB < B[b1,b2]] 
-
--->
-
-dA < B[cB < b1, cA < A[a1,cB < b2]]
-
--}
 
 invert :: Data a => Dim -> Dim -> V a -> V a
 invert b a = prioritize b a . hoist b

@@ -75,18 +75,6 @@ funs = Obj . foldl append end . reverse
 -- Twice example.
 --
 
--- twice = Dim "Par" ["x","y"]
---       $ Dim "Impl" ["plus","times"]
---       $ haskell $ Fun "twice" [v] i end
---   where v = VHaskell $ chc' "Par" [Var "x", Var "y"]
---         i = VHaskell $ chc' "Impl" [op "+" v v, op "*" (Val 2) v]
--- 
--- twice = Dim "Par" ["x","y"]
---       $ Dim "Impl" ["plus","times"]
---       $ fun "twice" [v] i
---       where v = choice "Par" [x,y]
---             i = choice "Impl" [v .+ v, Val 2 .* v]
-
 twice = Dim "Par" ["x","y"] $
         Dim "Impl" ["plus","times"] $
         let v = choice "Par" [x,y] in 
@@ -101,12 +89,6 @@ xt = fun "twice" [x] (Val 2 .* x)
 yt = fun "twice" [y] (Val 2 .* y)
 
 -- deriving with SYB...
--- addChoice :: Haskell -> Haskell
--- addChoice (Var "x") = choice "Par" [x,y]
--- addChoice e = e
--- 
--- varyPar :: VHaskell -> VHaskell
--- varyPar = Dim "Par" ["x","y"] . everywhere (mkT addChoice)
 
 addPar :: Haskell -> Haskell
 addPar (Var "x") = choice "Par" [x,y]
