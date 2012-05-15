@@ -70,8 +70,6 @@ alt d tvs = atomic d ts vs where (ts,vs) = unzip tvs
 -- lifting a function's argument type to V
 liftV :: (a -> V b) -> V a -> V b
 liftV = (=<<)
---liftV = flip (>>=)
---liftV f = (>>= f)
 
 
 ---------------
