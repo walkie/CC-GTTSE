@@ -1,7 +1,7 @@
 
 module Examples.Edit where
 
-import Control.Monad ((>=>),msum)
+import Control.Monad ((>=>),mplus,msum)
 import Data.Generics (Data,mkQ,mkT)
 import Data.Generics.Zipper -- requires, from Hackage: syz
 import Data.Maybe (fromJust,fromMaybe)
@@ -94,6 +94,18 @@ prioritize b a e = withFallback e $ do
     (cB,Chc _ [b1,b2]) <- extract (chcFor b) a2
     return $ dA <@ (Chc b [cB <@ b1,cA <@ (Chc a [a1,cB <@ b2])])
 
+prioritize' :: Data a => Dim -> Dim -> V a -> V a
+prioritize' b a e = withFallback e $ do
+    (dA,ae)            <- extract (dimDef a) e
+    (cA,Chc _ [a1,a2]) <- extract (chcFor a) ae
+    let fstAlt cB b1 b2 = [cA <@ Chc a [cB <@ b1,a2],cB <@ b2]
+    let sndAlt cB b1 b2 = [cB <@ b1,cA <@ Chc a [a1,cB <@ b2]]
+    let tryAlt f ai = do
+            (cB,Chc _ [b1,b2]) <- extract (chcFor b) ai
+            return $ dA <@ Chc b (f cB b1 b2)
+    tryAlt fstAlt a1 `mplus` tryAlt sndAlt a2
+
+
 -- Apply a transformation to all matching nodes
 -- stopping recursion on the end condition.
 editBetween :: Data a => (V a -> Bool) -> (V a -> Bool) -> (V a -> V a) -> C a -> C a
@@ -130,6 +142,28 @@ extend' d t f e = withFallback e $ do
     let e' = f `inRange` (chcFor d,dimDef d) $ e
     return (c <@ Dim d (ts++[t]) e')
 
+swapAlts :: V a -> V a
+swapAlts (Chc d [a,b]) = Chc d [b,a]
+
+swapOptions :: Data a => Dim -> V a -> V a
+swapOptions d e = withFallback e $ do
+    (c, Dim _ [t,u] e) <- extract (dimDef d) e
+    let e' = swapAlts `inRange` (chcFor d,dimDef d) $ e
+    return (c <@ Dim d [u,t] e')
+
+{-
+swapAlts :: Int -> Int -> V a -> V a
+swapAlts i j (Chc d as) = Chc d (take (i'-1) as ++ [as !! i'] 
+  where i' = min i j
+        j' = max i j
+
+swapOptions :: Data a => Dim -> (Tag,Tag) -> V a -> V a
+swapOptions d (t,u) e = withFallback e $ do
+    (c, Dim _ ts e) <- extract (dimDef d) e
+    i <- elemIndex t ts
+    j <- elemIndex u ts
+    let e' = swapAlts i j `inRange
+-}
 
 
 {-

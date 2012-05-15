@@ -3,7 +3,7 @@
 module Examples.Haskell where
 
 import Data.Generics
-import Data.List (intersperse)
+import Data.List (elemIndex,intersperse)
 
 import CC.Syntax
 import CC.Semantics
@@ -18,7 +18,7 @@ type VHaskell = V Haskell
 data Haskell = App Haskell Haskell
          | Var Name
          | Val Int
-         | Let Name [Haskell] Haskell Haskell
+         | Fun Name [Haskell] Haskell Haskell
       -- | ...
          | VHaskell VHaskell
   deriving (Eq,Data,Typeable)
@@ -48,7 +48,7 @@ getOp ('(':o) = take (length o-1) o
 --
 
 def :: Name -> [Name] -> Haskell -> Def
-def n as b = Let n (map Var as) b
+def n as b = Fun n (map Var as) b
 
 end :: Haskell
 end = Var ""
@@ -65,7 +65,11 @@ end = Var ""
 
 choice d = VHaskell . chc' d 
 
-fun n vs e = haskell $ Let n vs e end
+fun n vs e = haskell $ Fun n vs e end
+
+funs :: [VHaskell] -> VHaskell
+funs = Obj . foldl append end . reverse
+  where append e (Obj (Fun f as b (Var ""))) = Fun f as b e
 
 --
 -- Twice example.
@@ -73,7 +77,7 @@ fun n vs e = haskell $ Let n vs e end
 
 -- twice = Dim "Par" ["x","y"]
 --       $ Dim "Impl" ["plus","times"]
---       $ haskell $ Let "twice" [v] i end
+--       $ haskell $ Fun "twice" [v] i end
 --   where v = VHaskell $ chc' "Par" [Var "x", Var "y"]
 --         i = VHaskell $ chc' "Impl" [op "+" v v, op "*" (Val 2) v]
 -- 
@@ -140,6 +144,27 @@ stopTest = extend "Par" "z" (addAlt (haskell z)) twice'
                  let v' = VHaskell $ dimPar (haskell v) in
                  fun "twice" [v] (choice "Impl" [v .+ v', Val 2 .* v])
 
+--
+-- Editing Operations
+--
+
+firstFun :: Pred Haskell
+firstFun (Obj (Fun _ _ _ _)) = True
+firstFun _                   = False
+
+renameRef :: Name -> Name -> Haskell -> Haskell
+renameRef x y (Var x')
+    | x == x'   = choice "Par" [Var x,Var y]
+    | otherwise = Var x'
+renameRef _ _ e = e
+
+renamePar :: VHaskell -> Name -> Name -> VHaskell
+renamePar e x y = withFallback e $ do
+    (c, Obj (Fun f as b end)) <- extract firstFun e
+    let as' = everywhere (mkT (renameRef x y)) as
+    let b'  = everywhere (mkT (renameRef x y)) b
+    return (c <@ Dim "Par" [x,y] (Obj (Fun f as' b' end)))
+
 ---------------------
 -- Pretty Printing --
 ---------------------
@@ -154,14 +179,14 @@ instance Show Haskell where
 showDef n as b = n ++ " " ++ args as ++ " = " ++ showHaskell b
   where args = concat . intersperse " " . map showTerm
 
-showTop (Let n as b (Var "")) = showDef n as b
-showTop (Let n as b c)        = showDef n as b ++ "\n" ++ showTop c
+showTop (Fun n as b (Var "")) = showDef n as b
+showTop (Fun n as b c)        = showDef n as b ++ "\n" ++ showTop c
 showTop e                     = showHaskell e
 
 showHaskell (App (App (Var o) l) r) | isOp o = showHaskell  l ++ getOp o ++ showTerm r
 showHaskell (App l@(App _ _) r) = showHaskell  l ++ " " ++ showTerm r
 showHaskell (App l r)           = showTerm l ++ " " ++ showTerm r
-showHaskell (Let n as b c)      = "let " ++ showDef n as b ++ "in " ++ showHaskell c
+showHaskell (Fun n as b c)      = "let " ++ showDef n as b ++ "in " ++ showHaskell c
 showHaskell (VHaskell v)        = show v
 showHaskell t                   = showTerm t
 
